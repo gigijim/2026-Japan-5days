@@ -312,6 +312,9 @@
             const [touchEndY, setTouchEndY] = useState(null);
             const [showPhotoUI, setShowPhotoUI] = useState(true);
 
+            // iOS 邊緣右滑返回手勢狀態
+            const [edgeSwipe, setEdgeSwipe] = useState({ startX: null, startY: null, currentX: null, currentY: null });
+
             const [user, setUser] = useState(null);
             const [db, setDb] = useState(null);
             
@@ -615,7 +618,37 @@
                 }
             };
 
-            // ✅ 優化後的滑動偵測邏輯 (支援上下滑動關閉 & 雙指防呆)
+            // ✅ iOS 原生邊緣右滑返回上一頁邏輯
+            const handleAppTouchStart = (e) => {
+                if (view === 'home' || fullScreenPhoto) return; 
+                const touch = e.touches[0];
+                // 只有從螢幕極左側 (小於 40px) 開始滑動才判定為返回手勢
+                if (touch.clientX < 40) {
+                    setEdgeSwipe({ startX: touch.clientX, startY: touch.clientY, currentX: touch.clientX, currentY: touch.clientY });
+                }
+            };
+
+            const handleAppTouchMove = (e) => {
+                if (edgeSwipe.startX !== null) {
+                    const touch = e.touches[0];
+                    setEdgeSwipe(prev => ({ ...prev, currentX: touch.clientX, currentY: touch.clientY }));
+                }
+            };
+
+            const handleAppTouchEnd = () => {
+                if (edgeSwipe.startX !== null && edgeSwipe.currentX !== null) {
+                    const dx = edgeSwipe.currentX - edgeSwipe.startX;
+                    const dy = Math.abs(edgeSwipe.currentY - edgeSwipe.startY);
+                    
+                    // X軸向右滑動超過 60px 且 Y軸無劇烈上下滑動，則返回首頁
+                    if (dx > 60 && dy < 60) {
+                        setView('home');
+                    }
+                }
+                setEdgeSwipe({ startX: null, startY: null, currentX: null, currentY: null });
+            };
+
+            // ✅ 優化後的相片滑動偵測邏輯 (支援上下滑動關閉 & 雙指防呆)
             const onTouchStart = (e) => {
                 // 如果是雙指以上(縮放)，則清除起點，不觸發滑動換頁/關閉
                 if (e.touches.length > 1) {
@@ -862,20 +895,27 @@
                             <button className={`flex-1 py-3 font-black ${calcTab === 'records' ? 'bg-yellow-400 text-kuma-black' : 'text-kuma-black'}`} onClick={() => setCalcTab('records')}>花費紀錄</button>
                         </div>
                         {calcTab === 'calc' ? (
-                            <div className="p-4 pt-6 flex-1 flex flex-col max-w-md md:max-w-xl lg:max-w-2xl mx-auto w-full pb-32 overflow-y-auto">
-                                <div className="brutal-card bg-white p-4 mb-4 text-right">
-                                    <p className="text-gray-500 font-bold mb-1 text-xs md:text-sm">日幣 JPY</p><p className="text-4xl md:text-5xl font-black text-kuma-red break-all tracking-wider">¥ {parseInt(calcJpy).toLocaleString()}</p>
-                                    <div className="h-1 bg-black my-3 w-full opacity-10"></div>
-                                    <p className="text-gray-500 font-bold mb-1 text-xs md:text-sm">台幣 TWD</p><p className="text-3xl md:text-4xl font-black break-all tracking-wider">NT$ {Math.round(parseInt(calcJpy || 0) * JPY_RATE).toLocaleString()}</p>
+                            <div className="p-4 pt-4 flex-1 flex flex-col max-w-md md:max-w-xl lg:max-w-2xl mx-auto w-full pb-safe overflow-y-auto">
+                                {/* ✅ 高度大幅縮減版的金額顯示卡片 */}
+                                <div className="brutal-card bg-white p-4 mb-4 flex flex-col justify-center">
+                                    <div className="flex justify-between items-baseline mb-1">
+                                        <span className="text-gray-500 font-bold text-sm">日幣 JPY</span>
+                                        <span className="text-4xl font-black text-kuma-red tracking-wider">¥ {parseInt(calcJpy).toLocaleString()}</span>
+                                    </div>
+                                    <div className="h-px bg-gray-200 my-2 w-full"></div>
+                                    <div className="flex justify-between items-baseline">
+                                        <span className="text-gray-500 font-bold text-xs">台幣 TWD</span>
+                                        <span className="text-xl font-black text-gray-700 tracking-wider">NT$ {Math.round(parseInt(calcJpy || 0) * JPY_RATE).toLocaleString()}</span>
+                                    </div>
                                 </div>
                                 <input type="text" placeholder="請輸入花費項目名稱" value={calcExpenseName} onChange={e => setCalcExpenseName(e.target.value)} className="w-full border-4 border-black p-3 md:p-4 mb-4 rounded font-bold text-lg md:text-xl focus:ring-4 focus:ring-yellow-300 outline-none" />
-                                <div className="grid grid-cols-3 gap-3 md:gap-4 mt-auto mb-auto">
-                                    {[1,2,3,4,5,6,7,8,9].map(n => <button key={n} onClick={() => setCalcJpy(calcJpy === '0' ? n.toString() : calcJpy + n)} className="brutal-btn bg-white py-4 md:py-6 text-2xl md:text-3xl">{n}</button>)}
-                                    <button onClick={() => {setCalcJpy('0'); setCalcExpenseName('');}} className="brutal-btn bg-red-100 text-kuma-red py-4 md:py-6 text-2xl md:text-3xl">C</button>
-                                    <button onClick={() => setCalcJpy(calcJpy === '0' ? '0' : calcJpy + '0')} className="brutal-btn bg-white py-4 md:py-6 text-2xl md:text-3xl">0</button>
-                                    <button onClick={handleDel} className="brutal-btn bg-gray-200 py-4 md:py-6 flex justify-center items-center text-kuma-black"><Icon name="Backspace" size={32} /></button>
+                                <div className="grid grid-cols-3 gap-2 mt-auto mb-auto">
+                                    {[1,2,3,4,5,6,7,8,9].map(n => <button key={n} onClick={() => setCalcJpy(calcJpy === '0' ? n.toString() : calcJpy + n)} className="brutal-btn bg-white py-3 md:py-4 text-2xl md:text-3xl">{n}</button>)}
+                                    <button onClick={() => {setCalcJpy('0'); setCalcExpenseName('');}} className="brutal-btn bg-red-100 text-kuma-red py-3 md:py-4 text-2xl md:text-3xl">C</button>
+                                    <button onClick={() => setCalcJpy(calcJpy === '0' ? '0' : calcJpy + '0')} className="brutal-btn bg-white py-3 md:py-4 text-2xl md:text-3xl">0</button>
+                                    <button onClick={handleDel} className="brutal-btn bg-gray-200 py-3 md:py-4 flex justify-center items-center text-kuma-black"><Icon name="Backspace" size={32} /></button>
                                 </div>
-                                <button className="brutal-btn bg-kuma-red text-white w-full py-4 md:py-6 mt-6 text-xl md:text-2xl shadow-hard-lg tracking-widest" onClick={handleSaveExpense}>記帳並儲存</button>
+                                <button className="brutal-btn bg-kuma-red text-white w-full py-4 mt-6 text-xl shadow-hard-lg tracking-widest safe-bottom-float" onClick={handleSaveExpense}>記帳並儲存</button>
                             </div>
                         ) : (
                             <div className="p-4 flex-1 overflow-y-auto pb-40">
@@ -1227,7 +1267,12 @@
             };
 
             return (
-                <div className="relative min-h-screen bg-neo-grid w-full max-w-md md:max-w-2xl lg:max-w-4xl mx-auto shadow-2xl overflow-hidden flex flex-col text-kuma-black">
+                <div 
+                    className="relative min-h-screen bg-neo-grid w-full max-w-md md:max-w-2xl lg:max-w-4xl mx-auto shadow-2xl overflow-hidden flex flex-col text-kuma-black"
+                    onTouchStart={handleAppTouchStart}
+                    onTouchMove={handleAppTouchMove}
+                    onTouchEnd={handleAppTouchEnd}
+                >
                     {view === 'home' && renderHomeView()}
                     {view === 'itinerary' && renderItineraryView()}
                     {view === 'calc' && renderCalculatorView()}
@@ -1336,16 +1381,33 @@
                         </div>
                     )}
 
+                    {/* ✅ 全域快速計算機 - 虛擬鍵盤化設計與點擊外部關閉 */}
                     {showGlobalCalc && (
-                        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-                            <div className="brutal-card bg-kuma-red w-full max-w-sm p-1 shadow-hard-lg">
+                        <div className="fixed inset-0 bg-black/60 z-[100] flex flex-col justify-end sm:justify-center items-center p-0 sm:p-4 backdrop-blur-sm" onClick={() => setShowGlobalCalc(false)}>
+                            <div className="brutal-card bg-kuma-red w-full max-w-md p-1 shadow-hard-lg rounded-b-none sm:rounded-xl animate-pop" onClick={(e) => e.stopPropagation()}>
                                 <div className="bg-white rounded-lg p-5">
-                                    <div className="flex justify-between items-center mb-4"><h3 className="font-black text-xl text-kuma-black">快速匯率換算</h3><button onClick={() => setShowGlobalCalc(false)}><Icon name="X" /></button></div>
-                                    <input type="number" placeholder="輸入日幣..." className="w-full border-4 border-black p-3 rounded font-black text-2xl mb-4 focus:outline-none" value={globalCalcJpy} onChange={(e) => setGlobalCalcJpy(e.target.value)} autoFocus />
-                                    <div className="bg-gray-100 p-4 rounded border-2 border-black">
-                                        <p className="font-bold text-gray-600 mb-1 text-sm text-left">約合台幣 (x{JPY_RATE})</p><p className="font-black text-4xl text-kuma-black text-right">NT$ {Math.round(parseInt(globalCalcJpy || 0)*JPY_RATE).toLocaleString()}</p>
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="font-black text-xl text-kuma-black">快速匯率換算</h3>
+                                        <button onClick={() => setShowGlobalCalc(false)} className="bg-gray-100 p-1.5 rounded-full border-2 border-black active:scale-90 transition-transform"><Icon name="X" size={20} /></button>
                                     </div>
-                                    <button className="brutal-btn bg-kuma-black text-white w-full py-3 mt-4 text-lg font-black tracking-widest text-center" onClick={() => setShowGlobalCalc(false)}>完成</button>
+                                    
+                                    <div className="bg-gray-100 p-4 rounded border-2 border-black mb-4">
+                                        <div className="text-right text-4xl font-black text-kuma-red break-all tracking-wider mb-2">¥ {parseInt(globalCalcJpy || '0').toLocaleString()}</div>
+                                        <div className="h-px bg-gray-300 w-full mb-2"></div>
+                                        <div className="flex justify-between items-end">
+                                            <p className="font-bold text-gray-500 text-xs text-left mb-0.5">約合台幣 (x{JPY_RATE})</p>
+                                            <p className="font-black text-2xl text-kuma-black text-right">NT$ {Math.round(parseInt(globalCalcJpy || '0')*JPY_RATE).toLocaleString()}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[1,2,3,4,5,6,7,8,9].map(n => <button key={n} onClick={() => setGlobalCalcJpy(globalCalcJpy === '0' || !globalCalcJpy ? n.toString() : globalCalcJpy + n)} className="brutal-btn bg-white py-4 text-2xl">{n}</button>)}
+                                        <button onClick={() => setGlobalCalcJpy('0')} className="brutal-btn bg-red-100 text-kuma-red py-4 text-2xl">C</button>
+                                        <button onClick={() => setGlobalCalcJpy(globalCalcJpy === '0' || !globalCalcJpy ? '0' : globalCalcJpy + '0')} className="brutal-btn bg-white py-4 text-2xl">0</button>
+                                        <button onClick={() => setGlobalCalcJpy(globalCalcJpy.length > 1 ? globalCalcJpy.slice(0, -1) : '0')} className="brutal-btn bg-gray-200 py-4 flex justify-center items-center text-kuma-black"><Icon name="Backspace" size={28} /></button>
+                                    </div>
+
+                                    <button className="brutal-btn bg-kuma-black text-white w-full py-4 mt-4 text-lg font-black tracking-widest text-center shadow-hard" onClick={() => setShowGlobalCalc(false)}>完成並關閉</button>
                                 </div>
                             </div>
                         </div>
