@@ -13,10 +13,12 @@
     
     <title>JAPAN | 熊本福岡初之旅</title>
     
-    <!-- PWA Web App Manifest 與 指定 PNG Icon 修正 -->
-    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiS3VtYSBUcmlwIiwic2hvcnRfbmFtZSI6Ikt1bWFUcmlwIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNGNUY1RjAiLCJ0aGVtZV9jb2xvciI6IiNFNjAwMTIiLCJpY29ucyI6W3sic3JjIjoiaHR0cHM6Ly9kdWsudHcvYXBpL3Byb3h5LWltYWdlP3VybD1odHRwcyUzQSUyRiUyRnN0b3JhZ2UubWV0ZW9yLnRvZGF5JTJGaW1hZ2UlMkY2OWEzNjcxNmZmZWY1ZGQ0ZjA1ZGViZGEucG5nIiwic2l6ZXMiOiI1MTJ4NTEyIiwidHlwZSI6ImltYWdlL3BuZyJ9XX0=">
-    <meta name="theme-color" content="#E60012">
-    <link rel="apple-touch-icon" href="https://duk.tw/api/proxy-image?url=https%3A%2F%2Fstorage.meteor.today%2Fimage%2F69a36716ffef5dd4f05debda.png">
+    <!-- PWA Web App Manifest: 改為載入同目錄下的 icon.png -->
+    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiS3VtYSBUcmlwIiwic2hvcnRfbmFtZSI6Ikt1bWFUcmlwIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNGNUY1RjAiLCJ0aGVtZV9jb2xvciI6IiNFNjAwMTIiLCJpY29ucyI6W3sic3JjIjoiaWNvbi5wbmciLCJzaXplcyI6IjUxMng1MTIiLCJ0eXBlIjoiaW1hZ2UvcG5nIn1dfQ==">
+    <meta name="theme-color" content="#111111">
+    
+    <!-- 蘋果專屬桌面圖示: 請務必在 GitHub 放上一張名為 icon.png 的圖片 -->
+    <link rel="apple-touch-icon" href="icon.png">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -121,6 +123,29 @@
         }
         .animate-pop {
             animation: pop 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        /* ✅ iOS 瀏海與安全區域防擋專用樣式 */
+        .safe-top-bar {
+            padding-top: calc(1rem + env(safe-area-inset-top, 0px));
+            padding-bottom: 1rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        .safe-home-pt {
+            padding-top: calc(4rem + env(safe-area-inset-top, 0px));
+        }
+        .safe-close-btn {
+            top: calc(1rem + env(safe-area-inset-top, 0px));
+        }
+        .safe-bottom-float {
+            bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+        }
+        .safe-bottom-calc {
+            bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+        }
+        .safe-pb {
+            padding-bottom: env(safe-area-inset-bottom, 0px);
         }
     </style>
 </head>
@@ -283,6 +308,8 @@
             // 照片牆滑動與 UI 狀態
             const [touchStart, setTouchStart] = useState(null);
             const [touchEnd, setTouchEnd] = useState(null);
+            const [touchStartY, setTouchStartY] = useState(null);
+            const [touchEndY, setTouchEndY] = useState(null);
             const [showPhotoUI, setShowPhotoUI] = useState(true);
 
             const [user, setUser] = useState(null);
@@ -588,27 +615,57 @@
                 }
             };
 
-            // 滑動偵測邏輯
-            const minSwipeDistance = 50;
+            // ✅ 優化後的滑動偵測邏輯 (支援上下滑動關閉 & 雙指防呆)
             const onTouchStart = (e) => {
+                // 如果是雙指以上(縮放)，則清除起點，不觸發滑動換頁/關閉
+                if (e.touches.length > 1) {
+                    setTouchStart(null);
+                    setTouchStartY(null);
+                    return;
+                }
                 setTouchEnd(null);
+                setTouchEndY(null);
                 setTouchStart(e.targetTouches[0].clientX);
+                setTouchStartY(e.targetTouches[0].clientY);
             };
-            const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
+            
+            const onTouchMove = (e) => {
+                if (e.touches.length > 1) {
+                    setTouchEnd(null);
+                    setTouchEndY(null);
+                    return;
+                }
+                setTouchEnd(e.targetTouches[0].clientX);
+                setTouchEndY(e.targetTouches[0].clientY);
+            };
+            
             const onTouchEndEvent = () => {
-                if (!touchStart || !touchEnd) return;
-                const distance = touchStart - touchEnd;
-                const isLeftSwipe = distance > minSwipeDistance;
-                const isRightSwipe = distance < -minSwipeDistance;
+                if (touchStart === null || touchEnd === null || touchStartY === null || touchEndY === null) return;
                 
-                if (fullScreenPhoto && photos.length > 0) {
-                    const currentIndex = photos.findIndex(p => p.id === fullScreenPhoto.id);
-                    if (currentIndex !== -1) {
-                        if (isLeftSwipe && currentIndex < photos.length - 1) {
-                            setFullScreenPhoto(photos[currentIndex + 1]);
-                        }
-                        if (isRightSwipe && currentIndex > 0) {
-                            setFullScreenPhoto(photos[currentIndex - 1]);
+                const distanceX = touchStart - touchEnd;
+                const distanceY = touchStartY - touchEndY;
+                
+                const isLeftSwipe = distanceX > 60;
+                const isRightSwipe = distanceX < -60;
+                const isVerticalSwipe = Math.abs(distanceY) > 90; // 上下滑動超過 90px 視為關閉意圖
+
+                // 判斷主要滑動方向是垂直還是水平
+                if (Math.abs(distanceY) > Math.abs(distanceX)) {
+                    // Y軸為主：上下滑動關閉
+                    if (isVerticalSwipe) {
+                        setFullScreenPhoto(null);
+                    }
+                } else {
+                    // X軸為主：左右切換相片
+                    if (fullScreenPhoto && !fullScreenPhoto.isMap && photos.length > 0) {
+                        const currentIndex = photos.findIndex(p => p.id === fullScreenPhoto.id);
+                        if (currentIndex !== -1) {
+                            if (isLeftSwipe && currentIndex < photos.length - 1) {
+                                setFullScreenPhoto(photos[currentIndex + 1]);
+                            }
+                            if (isRightSwipe && currentIndex > 0) {
+                                setFullScreenPhoto(photos[currentIndex - 1]);
+                            }
                         }
                     }
                 }
@@ -617,7 +674,7 @@
             // --- Views ---
 
             const renderHomeView = () => (
-                <div className="p-4 pt-16 grid grid-cols-2 gap-4 flex-1 h-full overflow-y-auto hide-scrollbar pb-32">
+                <div className="p-4 safe-home-pt grid grid-cols-2 gap-4 flex-1 h-full overflow-y-auto hide-scrollbar pb-32">
                     <div className="col-span-2 mb-2 mt-4 relative">
                         <div className="brutal-card bg-gradient-to-r from-kuma-black to-gray-600 text-white p-4 relative border-4 border-black shadow-hard-lg">
                             <svg viewBox="0 0 100 100" className="absolute -right-2 top-0 w-40 h-40 z-20 pointer-events-none drop-shadow-[0_4px_4px_rgba(0,0,0,0.6)]">
@@ -704,18 +761,18 @@
                     <div className="col-span-2 mt-12 mb-6 flex flex-col items-center justify-center opacity-80 hover:opacity-100 transition-opacity duration-300">
                         <div className="h-px w-12 bg-gray-300 mb-4"></div>
                         <p className="text-[10px] font-black tracking-widest text-gray-500 uppercase">CREATED BY UMC IT JIMMY & JEREMY 2026</p>
-                        <p className="text-[9px] font-bold tracking-widest text-gray-400 uppercase mt-1">VERSION v1.0.2</p>
+                        <p className="text-[9px] font-bold tracking-widest text-gray-400 uppercase mt-1">VERSION v1.0.0</p>
                     </div>
                 </div>
             );
 
             const renderItineraryView = () => (
                 <div className="flex flex-col h-screen bg-neo-grid">
-                    <div className="bg-kuma-black text-white p-4 flex items-center shadow-md z-20 sticky top-0">
+                    <div className="bg-kuma-black text-white safe-top-bar flex items-center shadow-md z-20 sticky top-0 shrink-0">
                         <button onClick={() => setView('home')} className="mr-4 active:scale-90 transition-transform"><Icon name="ArrowLeft" /></button>
                         <h2 className="font-black text-xl tracking-widest text-white text-center flex-1 pr-8">行程時間軸</h2>
                     </div>
-                    <div className="bg-white border-b-4 border-black flex w-full sticky top-[60px] z-10 shadow-[0_4px_0_rgba(0,0,0,1)] overflow-x-auto hide-scrollbar">
+                    <div className="bg-white border-b-4 border-black flex w-full sticky top-[60px] z-10 shadow-[0_4px_0_rgba(0,0,0,1)] overflow-x-auto hide-scrollbar shrink-0">
                         {dates.map(date => {
                             const isSelected = activeDate === date;
                             const [, month, day] = date.split('-');
@@ -795,8 +852,8 @@
                 };
 
                 return (
-                    <div className="flex flex-col h-screen bg-neo-grid">
-                        <div className="bg-kuma-black text-white p-4 flex items-center shadow-md sticky top-0 z-20 shrink-0">
+                    <div className="flex flex-col h-screen bg-neo-grid text-kuma-black">
+                        <div className="bg-kuma-black text-white safe-top-bar flex items-center shadow-md z-20 shrink-0">
                             <button onClick={() => setView('home')} className="mr-4 active:scale-90 transition-transform"><Icon name="ArrowLeft" /></button>
                             <h2 className="font-black text-xl tracking-widest text-white text-center flex-1 pr-8">快速記帳</h2>
                         </div>
@@ -836,14 +893,14 @@
                                 
                                 {/* ✅ 花費紀錄卡片優化 */}
                                 {sortedExpenses.map(exp => (
-                                    <div key={exp.id} className="brutal-card bg-white p-3 mb-3 flex flex-col relative overflow-hidden cursor-pointer active:scale-[0.98] transition-transform" onClick={() => handleEditExpense(exp)}>
+                                    <div key={exp.id} className="brutal-card bg-white p-3 mb-3 flex flex-col relative overflow-hidden cursor-pointer active:scale-[0.98] transition-transform shadow-hard" onClick={() => handleEditExpense(exp)}>
                                         <div className="flex items-start w-full">
                                             <div className="flex-1 pr-2">
                                                 <div className="font-black text-lg truncate leading-tight mb-1">{exp.name}</div>
                                                 <div className="text-[10px] font-bold text-gray-500 mb-1">{exp.date}</div>
                                                 <div className="flex items-baseline space-x-2 mb-1">
-                                                    <div className="font-black text-xl text-kuma-red leading-none">¥ {exp.jpy.toLocaleString()}</div>
-                                                    <div className="font-bold text-xs text-gray-400 leading-none">NT$ {exp.twd.toLocaleString()}</div>
+                                                    <div className="font-black text-xl text-kuma-red">¥ {exp.jpy.toLocaleString()}</div>
+                                                    <div className="font-bold text-xs text-gray-400">NT$ {exp.twd.toLocaleString()}</div>
                                                 </div>
                                                 <div className="mt-1 flex items-center space-x-2 flex-wrap gap-y-1">
                                                     <span className="text-[9px] font-black bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-400">
@@ -854,7 +911,7 @@
                                             
                                             {/* ✅ 花費收據縮圖顯示區 (移到右側並稍微放大) */}
                                             {itemDetails[exp.id]?.photoUrl && (
-                                                <div className="shrink-0 ml-2 w-20 h-20 sm:w-24 sm:h-24 rounded border-2 border-black overflow-hidden shadow-sm" onClick={(e) => { e.stopPropagation(); setFullScreenPhoto({ url: itemDetails[exp.id].photoUrl, device: '花費收據/相片' }); }}>
+                                                <div className="shrink-0 ml-2 w-20 h-20 rounded border-2 border-black overflow-hidden shadow-sm" onClick={(e) => { e.stopPropagation(); setFullScreenPhoto({ url: itemDetails[exp.id].photoUrl, device: '花費附件' }); }}>
                                                     <img src={itemDetails[exp.id].photoUrl} className="w-full h-full object-cover" />
                                                 </div>
                                             )}
@@ -881,7 +938,7 @@
 
             const renderChecklistView = () => (
                 <div className="flex flex-col h-screen bg-neo-grid text-kuma-black text-left">
-                    <div className="bg-kuma-black text-white p-4 flex items-center shadow-md sticky top-0 z-20 shrink-0">
+                    <div className="bg-kuma-black text-white safe-top-bar flex items-center shadow-md z-20 shrink-0">
                         <button onClick={() => setView('home')} className="mr-4 active:scale-90 transition-transform"><Icon name="ArrowLeft" /></button>
                         <h2 className="font-black text-xl text-white text-center flex-1 pr-8">清單管理</h2>
                     </div>
@@ -909,23 +966,23 @@
                                         </div>
                                         {/* ✅ 清單縮圖顯示 */}
                                         {itemDetails[item.id]?.photoUrl && (
-                                            <div className="shrink-0 mr-3 w-12 h-12 rounded border-2 border-black overflow-hidden bg-gray-200" onClick={(e) => { e.stopPropagation(); setFullScreenPhoto({ url: itemDetails[item.id].photoUrl, device: '清單附件圖片' }); }}>
+                                            <div className="shrink-0 mr-3 w-12 h-12 rounded border-2 border-black overflow-hidden bg-gray-200" onClick={(e) => { e.stopPropagation(); setFullScreenPhoto({ url: itemDetails[item.id].photoUrl, device: '清單附件' }); }}>
                                                 <img src={itemDetails[item.id].photoUrl} alt="thumb" className="w-full h-full object-cover" />
                                             </div>
                                         )}
                                     </div>
-                                    <button onClick={() => deleteChecklist(activeChecklistTab, item.id)} className="text-gray-300 hover:text-kuma-red active:scale-90 transition-colors p-2 shrink-0"><Icon name="Trash" size={20} /></button>
+                                    <button onClick={() => deleteChecklist(activeChecklistTab, item.id)} className="text-gray-300 hover:text-kuma-red active:scale-90 p-2 shrink-0"><Icon name="Trash" size={20} /></button>
                                 </div>
                             </div>
                         ))}
-                        <div className="mt-4 p-4 border-4 border-dashed border-gray-400 rounded-xl text-center text-gray-500 font-bold cursor-pointer active:bg-gray-100 transition-colors" onClick={() => setShowAddModal(true)}>+ 新增項目</div>
+                        <div className="mt-4 p-4 border-4 border-dashed border-gray-400 rounded-xl text-center text-gray-400 font-bold cursor-pointer active:bg-gray-100 transition-colors" onClick={() => setShowAddModal(true)}>+ 新增項目</div>
                     </div>
                 </div>
             );
 
             const renderPhotoGalleryView = () => (
-                <div className="flex flex-col h-screen bg-neo-grid">
-                    <div className="bg-kuma-black text-white p-4 flex items-center shadow-md z-20 sticky top-0"><button onClick={() => setView('home')} className="mr-4 active:scale-90 transition-transform"><Icon name="ArrowLeft" /></button><h2 className="font-black text-xl tracking-widest text-white text-center flex-1 pr-8">照片共享牆</h2></div>
+                <div className="flex flex-col h-screen bg-neo-grid text-kuma-black">
+                    <div className="bg-kuma-black text-white safe-top-bar flex items-center shadow-md z-20 shrink-0"><button onClick={() => setView('home')} className="mr-4 active:scale-90 transition-transform"><Icon name="ArrowLeft" /></button><h2 className="font-black text-xl text-white text-center flex-1 pr-8">照片共享牆</h2></div>
                     <div className="p-4 flex-1 overflow-y-auto pb-32">
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                             {photos.map(p => (
@@ -938,18 +995,18 @@
                                         {p.cameraInfo && <p className="text-[9px] font-bold text-gray-500 truncate mt-0.5">{p.cameraInfo}</p>}
                                     </div>
                                     {p.location && (
-                                        <a href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="absolute bottom-2 left-2 bg-white/90 text-blue-600 px-1.5 py-0.5 rounded text-[9px] font-black flex items-center shadow-sm border border-blue-200">
+                                        <a href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="absolute bottom-2 left-2 bg-white/90 text-blue-600 px-1.5 py-0.5 rounded text-[9px] font-black border border-blue-200">
                                             <Icon name="Map" size={10} className="mr-1 shrink-0"/>地圖
                                         </a>
                                     )}
-                                    <button onClick={(e) => { e.stopPropagation(); setPhotoToDelete(p.id); }} className="absolute top-2 right-2 bg-kuma-red text-white p-1.5 rounded border-2 border-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all"><Icon name="Trash" size={14} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); setPhotoToDelete(p.id); }} className="absolute top-2 right-2 bg-kuma-red text-white p-1.5 rounded border-2 border-black active:translate-y-0.5 transition-all"><Icon name="Trash" size={14} /></button>
                                 </div>
                             ))}
                         </div>
                         {photos.length === 0 && <div className="text-center py-20 font-bold text-gray-400">目前尚無上傳照片</div>}
                     </div>
                     {isUploading && <div className="fixed inset-0 bg-black/60 z-[100] flex flex-col items-center justify-center text-white font-black"><Icon name="Camera" size={40} className="animate-bounce mb-2" /><p>照片解析同步中...</p></div>}
-                    <div className="fixed bottom-0 left-0 right-0 w-full max-w-md md:max-w-2xl lg:max-w-4xl mx-auto p-4 z-40 bg-gradient-to-t from-kuma-bg to-transparent flex justify-center items-end h-32 pointer-events-none">
+                    <div className="fixed bottom-0 left-0 right-0 w-full max-w-md md:max-w-2xl lg:max-w-4xl mx-auto p-4 z-40 bg-gradient-to-t from-kuma-bg to-transparent flex justify-center items-end h-32 pointer-events-none safe-pb">
                         <label className="brutal-btn bg-blue-400 text-kuma-black w-full max-w-[260px] py-4 flex items-center justify-center space-x-2 pointer-events-auto text-lg mb-2 shadow-hard-lg cursor-pointer">
                             <Icon name="Camera" size={24} /><span className="font-black">快速上傳相片</span><input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                         </label>
@@ -961,48 +1018,29 @@
             const renderMapView = () => {
                 const activeMapUrl = tripMaps[activeMapId] || ""; 
                 return (
-                    <div className="flex flex-col h-screen bg-neo-grid">
-                        <div className="bg-kuma-black text-white p-4 flex items-center shadow-md z-20 sticky top-0">
-                            <button onClick={() => setView('home')} className="mr-4 active:scale-90 transition-transform"><Icon name="ArrowLeft" /></button>
-                            <h2 className="font-black text-xl tracking-widest text-white text-center flex-1 pr-8">旅程地圖</h2>
-                        </div>
-                        <div className="bg-white border-b-4 border-black flex overflow-x-auto hide-scrollbar sticky top-[60px] z-10">
-                            {mapSteps.map(m => (
-                                <button key={m.id} onClick={() => setActiveMapId(m.id)} className={`flex-1 min-w-[55px] py-4 font-black border-r-4 border-black last:border-r-0 transition-all ${activeMapId === m.id ? 'bg-green-500 text-white shadow-inner' : 'text-kuma-black hover:bg-green-50'}`}>{m.title}</button>
-                            ))}
+                    <div className="flex flex-col h-screen bg-neo-grid text-kuma-black">
+                        <div className="bg-kuma-black text-white safe-top-bar flex items-center shadow-md z-20 shrink-0"><button onClick={() => setView('home')} className="mr-4 active:scale-90 transition-transform"><Icon name="ArrowLeft" /></button><h2 className="font-black text-xl text-white text-center flex-1 pr-8">旅程地圖</h2></div>
+                        <div className="bg-white border-b-4 border-black flex overflow-x-auto hide-scrollbar sticky top-[60px] z-10 shrink-0">
+                            {mapSteps.map(m => (<button key={m.id} onClick={() => setActiveMapId(m.id)} className={`flex-1 min-w-[55px] py-4 font-black border-r-4 border-black last:border-r-0 transition-all ${activeMapId === m.id ? 'bg-green-500 text-white shadow-inner' : 'text-kuma-black hover:bg-green-50'}`}>{m.title}</button>))}
                         </div>
                         
-                        <div className="flex-1 overflow-auto p-4 flex flex-col items-center pb-24">
-                            <div 
-                                className="brutal-card p-1 bg-white relative w-full max-w-md md:max-w-2xl lg:max-w-3xl cursor-pointer active:scale-95 transition-transform" 
-                                onClick={() => { 
-                                    if (activeMapUrl) setFullScreenPhoto({ url: activeMapUrl, device: `${mapSteps.find(m => m.id === activeMapId).title} 規劃圖`, isMap: true }); 
-                                }}
-                            >
-                                {activeMapUrl ? (
-                                    <img src={activeMapUrl} className="w-full h-auto rounded-lg shadow-sm" alt="map" />
-                                ) : (
-                                    <div className="w-full h-64 bg-gray-100 rounded-lg flex flex-col items-center justify-center text-gray-400 p-8 text-center border-2 border-dashed border-gray-300">
-                                        <Icon name="Map" size={48} className="mb-2 opacity-20" />
-                                        <p className="font-black text-sm">尚未上傳此頁插畫圖</p>
-                                        <p className="text-xs mt-1">請點擊下方按鈕新增</p>
-                                    </div>
-                                )}
-                                {activeMapUrl && (
-                                    <div className="absolute top-2 right-2 bg-black/60 text-white px-3 py-1 rounded-full text-[10px] font-black backdrop-blur-sm shadow-md">
-                                        點擊全螢幕放大 (支援雙指縮放)
-                                    </div>
-                                )}
-                            </div>
-                            
-                            <label className="brutal-btn bg-white text-kuma-black px-6 py-3 mt-6 flex items-center space-x-2 shadow-hard border-2 border-black active:scale-95 transition-transform cursor-pointer">
+                        <div className="flex-1 overflow-auto p-0 pb-24 bg-gray-200">
+                            {activeMapUrl ? (
+                                <img src={activeMapUrl} className="max-w-none w-full object-contain pointer-events-auto" alt="map" onClick={() => setFullScreenPhoto({ url: activeMapUrl, device: `${mapSteps.find(m => m.id === activeMapId).title} 規劃圖`, isMap: true })} />
+                            ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 p-8 text-center bg-white">
+                                    <Icon name="Map" size={48} className="mb-2 opacity-20" />
+                                    <p className="font-black text-sm">尚未上傳此頁插畫圖</p>
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="fixed bottom-6 left-0 right-0 w-full px-8 pointer-events-none flex flex-col items-center safe-bottom-float">
+                             <label className="brutal-btn bg-white text-kuma-black px-6 py-3 mb-3 flex items-center space-x-2 shadow-hard border-2 border-black active:scale-95 transition-all cursor-pointer pointer-events-auto">
                                 <Icon name="Pencil" size={18} /><span className="font-black">更新此頁地圖圖檔</span>
                                 <input type="file" accept="image/*" className="hidden" onChange={handleMapUpload} />
                             </label>
-                        </div>
-                        
-                        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 w-full px-8 pointer-events-none">
-                            <div className="bg-kuma-black text-white p-3 rounded-lg border-2 border-white shadow-hard text-center font-black text-sm pointer-events-auto whitespace-nowrap">📍 目前查看：{mapSteps.find(m => m.id === activeMapId).title} 規劃圖</div>
+                            <div className="bg-kuma-black text-white px-4 py-2 rounded-lg border-2 border-white shadow-hard text-center font-black text-sm pointer-events-auto">📍 目前查看：{mapSteps.find(m => m.id === activeMapId).title} 規劃圖</div>
                         </div>
                     </div>
                 );
@@ -1071,16 +1109,16 @@
                     setShowEditExpenseModal(false);
                 };
                 return (
-                    <div className="fixed inset-0 bg-black/60 z-[150] flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="fixed inset-0 bg-black/60 z-[150] flex items-center justify-center p-4 backdrop-blur-sm text-kuma-black">
                         <div className="brutal-card bg-white w-full max-w-sm p-5 border-4 border-black shadow-hard-lg max-h-[90vh] overflow-y-auto">
-                            <div className="flex justify-between items-center mb-4"><h3 className="font-black text-xl text-kuma-black">編輯花費</h3><button onClick={() => setShowEditExpenseModal(false)}><Icon name="X" /></button></div>
-                            <div className="mb-3"><label className="block font-bold text-xs mb-1">發生時間</label><input type="datetime-local" className="w-full border-4 border-black p-2 rounded font-bold" value={editExpenseTime} onChange={e => setEditExpenseTime(e.target.value)} /></div>
-                            <div className="mb-3"><label className="block font-bold text-xs mb-1">項目名稱</label><input type="text" className="w-full border-4 border-black p-2 rounded font-bold" value={editExpenseName} onChange={e => setEditExpenseName(e.target.value)} /></div>
-                            <div className="mb-2"><label className="block font-bold text-xs mb-1">日幣金額 ¥</label><input type="number" className="w-full border-4 border-black p-2 rounded font-black text-kuma-red" value={editExpenseJpy} onChange={e => setEditExpenseJpy(e.target.value)} /></div>
+                            <div className="flex justify-between items-center mb-4"><h3 className="font-black text-xl">編輯花費</h3><button onClick={() => setShowEditExpenseModal(false)}><Icon name="X" /></button></div>
+                            <div className="mb-3 text-left"><label className="block font-bold text-xs mb-1">發生時間</label><input type="datetime-local" className="w-full border-4 border-black p-2 rounded font-bold" value={editExpenseTime} onChange={e => setEditExpenseTime(e.target.value)} /></div>
+                            <div className="mb-3 text-left"><label className="block font-bold text-xs mb-1">項目名稱</label><input type="text" className="w-full border-4 border-black p-2 rounded font-bold" value={editExpenseName} onChange={e => setEditExpenseName(e.target.value)} /></div>
+                            <div className="mb-4 text-left"><label className="block font-bold text-xs mb-1">日幣金額 ¥</label><input type="number" className="w-full border-4 border-black p-2 rounded font-black text-kuma-red text-xl" value={editExpenseJpy} onChange={e => setEditExpenseJpy(e.target.value)} /></div>
                             
-                            <label className="block font-bold text-xs mb-1 mt-3 text-gray-700">收據/相片證明 (可選)</label>
+                            <label className="block font-bold text-xs mb-1 text-gray-700 text-left">收據/相片證明 (可選)</label>
                             <div className="mb-5 relative">
-                                {expenseUploading && <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center font-black text-xs">壓縮上傳中...</div>}
+                                {expenseUploading && <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center font-black text-xs">上傳中...</div>}
                                 {detail.photoUrl ? (
                                     <div className="relative group">
                                         <img src={detail.photoUrl} className="w-full h-32 object-cover rounded border-4 border-black cursor-pointer" onClick={() => setFullScreenPhoto({ url: detail.photoUrl, device: '花費附件' })} />
@@ -1095,7 +1133,7 @@
                                 )}
                             </div>
 
-                            <button onClick={handleSaveEdit} className="brutal-btn bg-kuma-black text-white w-full py-3 font-black tracking-widest mt-2">儲存修改</button>
+                            <button onClick={handleSaveEdit} className="brutal-btn bg-kuma-black text-white w-full py-3 font-black tracking-widest mt-2 shadow-hard">儲存修改</button>
                         </div>
                     </div>
                 );
@@ -1122,17 +1160,17 @@
                 };
 
                 return (
-                    <div className="fixed inset-0 bg-black/60 z-[150] flex flex-col items-center justify-end sm:justify-center p-0 sm:p-4 backdrop-blur-sm">
+                    <div className="fixed inset-0 bg-black/60 z-[150] flex flex-col items-center justify-end sm:justify-center p-0 sm:p-4 backdrop-blur-sm text-kuma-black">
                         <div className="brutal-card bg-white w-full max-w-md md:max-w-2xl p-5 border-4 sm:border-4 border-b-0 sm:border-b-4 border-black sm:rounded-xl rounded-b-none shadow-hard-lg max-h-[90vh] overflow-y-auto flex flex-col">
                             <div className="flex justify-between items-start mb-4 border-b-4 border-black pb-3">
                                 <div className="flex-1 pr-4 w-full">
-                                    <span className="text-[10px] font-black bg-yellow-300 px-2 py-0.5 border border-black rounded mb-1 inline-block">{detailModalItem.isChecklist ? '清單項目' : '行程規劃'}</span>
+                                    <span className="text-[10px] font-black bg-yellow-300 px-2 py-0.5 border border-black rounded mb-1 inline-block text-left">{detailModalItem.isChecklist ? '清單項目' : '行程規劃'}</span>
                                     {detailModalItem.isChecklist ? (
-                                        <h3 className="font-black text-xl leading-tight text-kuma-black break-words">{detailModalItem.text}</h3>
+                                        <h3 className="font-black text-xl leading-tight text-left">{detailModalItem.text}</h3>
                                     ) : (
                                         <input 
                                             type="text" 
-                                            className="w-full font-black text-xl leading-tight text-kuma-black border-b-2 border-dashed border-gray-400 focus:border-kuma-red outline-none bg-transparent py-1"
+                                            className="w-full font-black text-xl leading-tight border-b-2 border-dashed border-gray-400 focus:border-kuma-red outline-none bg-transparent py-1"
                                             value={tempDetailTitle}
                                             onChange={e => setTempDetailTitle(e.target.value)}
                                         />
@@ -1142,20 +1180,20 @@
                             </div>
                             
                             <div className="flex-1 flex flex-col">
-                                <label className="block font-black text-sm mb-1 text-gray-700"><Icon name="Pencil" size={14} className="inline mr-1" />詳細備註筆記</label>
+                                <label className="block font-black text-sm mb-1 text-gray-700 text-left"><Icon name="Pencil" size={14} className="inline mr-1" />詳細備註筆記</label>
                                 <textarea 
                                     className="w-full border-4 border-black p-3 rounded font-bold text-sm min-h-[120px] mb-4 focus:ring-4 focus:ring-yellow-300 outline-none resize-none"
-                                    placeholder="可以在這裡寫下詳細筆記、價格或網址..."
+                                    placeholder="詳細筆記、價格或網址..."
                                     value={tempDetailNotes}
                                     onChange={e => setTempDetailNotes(e.target.value)}
                                 ></textarea>
 
-                                <label className="block font-black text-sm mb-1 text-gray-700"><Icon name="Camera" size={14} className="inline mr-1" />照片證明/參考圖</label>
+                                <label className="block font-black text-sm mb-1 text-gray-700 text-left"><Icon name="Camera" size={14} className="inline mr-1" />照片證明/參考圖</label>
                                 <div className="mb-4 relative">
-                                    {detailUploading && <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center font-black">壓縮上傳中...</div>}
+                                    {detailUploading && <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center font-black">上傳中...</div>}
                                     {detail.photoUrl ? (
                                         <div className="relative group">
-                                            <img src={detail.photoUrl} className="w-full h-48 md:h-64 object-cover rounded border-4 border-black cursor-pointer" onClick={() => setFullScreenPhoto({ url: detail.photoUrl, device: '項目附件' })} />
+                                            <img src={detail.photoUrl} className="w-full h-48 md:h-64 object-cover rounded border-4 border-black cursor-pointer shadow-hard" onClick={() => setFullScreenPhoto({ url: detail.photoUrl, device: '項目附件' })} />
                                             <button onClick={() => saveItemDetail(detailModalItem.id, { photoUrl: null })} className="absolute top-2 right-2 bg-kuma-red text-white p-2 border-2 border-black rounded shadow-hard"><Icon name="Trash" size={16}/></button>
                                         </div>
                                     ) : (
@@ -1181,7 +1219,7 @@
                                         <Icon name="Trash" size={24} />
                                     </button>
                                 )}
-                                <button onClick={handleSaveDetail} className="brutal-btn bg-kuma-black text-white flex-1 py-4 font-black tracking-widest text-lg shadow-hard-lg active:scale-95 transition-transform">儲存並返回</button>
+                                <button onClick={handleSaveDetail} className="brutal-btn bg-kuma-black text-white flex-1 py-4 font-black tracking-widest text-lg shadow-hard-lg active:scale-95 transition-transform text-center">儲存並返回</button>
                             </div>
                         </div>
                     </div>
@@ -1199,16 +1237,15 @@
 
                     {/* ✅ 懸浮新增按鈕 - 自適應寬度 */}
                     {(view === 'itinerary' || view === 'checklist') && (
-                        <div className="fixed bottom-6 left-0 right-0 w-full max-w-md md:max-w-2xl lg:max-w-4xl mx-auto px-4 z-[90] pointer-events-none flex justify-center">
+                        <div className="fixed left-0 right-0 w-full max-w-md md:max-w-2xl lg:max-w-4xl mx-auto px-4 z-[90] pointer-events-none flex justify-center safe-bottom-float">
                             <button onClick={() => setShowAddModal(true)} className="brutal-btn bg-kuma-red text-white w-full max-w-[220px] py-3.5 flex items-center justify-center space-x-2 pointer-events-auto text-lg shadow-hard-lg">
                                 <Icon name="Plus" size={24} /><span>新增{view === 'itinerary' ? '行程' : '項目'}</span>
                             </button>
                         </div>
                     )}
 
-                    {/* ✅ 修正：移除 lg:right-auto 讓它在所有設備上都乖乖待在右下角 */}
                     {view !== 'calc' && view !== 'photos' && view !== 'map' && (
-                        <button onClick={() => { setGlobalCalcJpy(''); setShowGlobalCalc(true); }} className="fixed bottom-[100px] right-4 md:right-8 z-[90] brutal-btn bg-yellow-400 p-4 rounded-full shadow-hard-red flex items-center justify-center active:translate-y-1 transition-transform"><Icon name="Calculator" size={28} /></button>
+                        <button onClick={() => { setGlobalCalcJpy(''); setShowGlobalCalc(true); }} className="fixed right-4 md:right-8 z-[90] brutal-btn bg-yellow-400 p-4 rounded-full shadow-hard-red flex items-center justify-center active:translate-y-1 transition-all safe-bottom-calc"><Icon name="Calculator" size={28} /></button>
                     )}
 
                     {/* Modals & Overlays */}
@@ -1216,7 +1253,7 @@
                     {renderEditExpenseModal()}
                     {renderItemDetailModal()}
 
-                    {/* ✅ 全螢幕照片檢視器 - 支援原生拖曳、縮放與左右滑動切換 */}
+                    {/* ✅ 全螢幕照片檢視器 - 支援下拉關閉、原生拖曳、縮放與左右滑動切換 */}
                     {fullScreenPhoto && (() => {
                         const isGalleryPhoto = fullScreenPhoto.id && photos.some(p => p.id === fullScreenPhoto.id);
                         const currentIndex = isGalleryPhoto ? photos.findIndex(p => p.id === fullScreenPhoto.id) : -1;
@@ -1235,7 +1272,10 @@
                                 </div>
 
                                 <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${showPhotoUI ? 'opacity-100' : 'opacity-0'}`}>
-                                    <div className="absolute top-6 right-4 text-white p-2 cursor-pointer z-[210] bg-black/50 rounded-full pointer-events-auto" onClick={(e) => { e.stopPropagation(); setFullScreenPhoto(null); }}><Icon name="X" size={28} /></div>
+                                    {/* ✅ iOS 風格的下拉提示小橫條 */}
+                                    <div className="absolute top-2 sm:top-4 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-white/50 rounded-full"></div>
+                                    
+                                    <div className="absolute right-4 text-white p-2 cursor-pointer z-[210] bg-black/50 rounded-full pointer-events-auto safe-close-btn" onClick={(e) => { e.stopPropagation(); setFullScreenPhoto(null); }}><Icon name="X" size={28} /></div>
                                     
                                     {isGalleryPhoto && currentIndex > 0 && (
                                         <div className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 text-white p-2 sm:p-3 cursor-pointer pointer-events-auto bg-black/50 rounded-full hover:bg-black/70" onClick={handlePrev}>
@@ -1248,7 +1288,7 @@
                                         </div>
                                     )}
 
-                                    <div className="absolute bottom-6 left-0 right-0 px-4 pointer-events-none z-[210]">
+                                    <div className="absolute left-0 right-0 px-4 pointer-events-none z-[210] safe-bottom-float">
                                         <div className="bg-black/70 backdrop-blur-md rounded-xl p-4 text-center text-white border border-white/20 shadow-xl pointer-events-auto mx-auto max-w-sm">
                                             <p className="font-black text-lg mb-1">{fullScreenPhoto.device || '未知設備'}</p>
                                             
@@ -1258,7 +1298,7 @@
                                                     {fullScreenPhoto.captureTime && <p className="font-bold opacity-80 text-xs mb-3">{new Date(fullScreenPhoto.captureTime).toLocaleString()}</p>}
                                                     
                                                     {fullScreenPhoto.lat && fullScreenPhoto.lon && (
-                                                        <a href={`https://www.google.com/maps/search/?api=1&query=${fullScreenPhoto.lat},${fullScreenPhoto.lon}`} target="_blank" rel="noreferrer" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full text-xs font-black inline-flex items-center transition-colors shadow-md mt-2">
+                                                        <a href={`https://www.google.com/maps/search/?api=1&query=${fullScreenPhoto.lat},${fullScreenPhoto.lon}`} target="_blank" rel="noreferrer" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full text-xs font-black inline-flex items-center transition-colors shadow-md mt-2 shadow-hard">
                                                             <Icon name="Map" size={14} className="mr-1.5" /> 在地圖上查看位置
                                                         </a>
                                                     )}
@@ -1275,9 +1315,9 @@
                     {showDevModal && (
                         <div className="fixed inset-0 bg-black/60 z-[250] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowDevModal(false)}>
                             <div className="brutal-card bg-white w-full max-w-xs p-6 border-4 border-black text-center animate-pop" onClick={e => e.stopPropagation()}>
-                                <h3 className="font-black text-xl mb-2 text-kuma-black">您已經啟用開發者模式</h3>
-                                <p className="font-bold text-gray-600 mb-6 text-sm">但開發者正在休息，請您稍後片刻。</p>
-                                <button onClick={() => setShowDevModal(false)} className="w-full brutal-btn bg-yellow-400 text-kuma-black py-3 font-black">我知道了</button>
+                                <h3 className="font-black text-xl mb-2 text-kuma-black text-center">您已經啟用開發者模式</h3>
+                                <p className="font-bold text-gray-600 mb-6 text-sm text-center">但開發者正在休息，請您稍後片刻。</p>
+                                <button onClick={() => setShowDevModal(false)} className="w-full brutal-btn bg-yellow-400 text-kuma-black py-3 font-black shadow-hard text-center">我知道了</button>
                             </div>
                         </div>
                     )}
@@ -1285,12 +1325,12 @@
                     {/* 防呆刪除警告 */}
                     {photoToDelete && (
                         <div className="fixed inset-0 bg-black/60 z-[250] flex items-center justify-center p-4 backdrop-blur-sm">
-                            <div className="brutal-card bg-white w-full max-w-xs p-6 border-4 border-black text-center">
-                                <h3 className="font-black text-xl mb-2 text-kuma-red">溫馨提醒</h3>
-                                <p className="font-bold text-gray-600 mb-6 text-sm">刪除後將無法復原這張珍貴的旅行回憶喔！確定要刪除嗎？</p>
+                            <div className="brutal-card bg-white w-full max-w-xs p-6 border-4 border-black text-center animate-pop">
+                                <h3 className="font-black text-xl mb-2 text-kuma-red text-center">溫馨提醒</h3>
+                                <p className="font-bold text-gray-600 mb-6 text-sm text-center">刪除後將無法復原這張珍貴的旅行回憶喔！確定要刪除嗎？</p>
                                 <div className="flex space-x-3">
-                                    <button onClick={() => setPhotoToDelete(null)} className="flex-1 brutal-btn bg-gray-200 py-3 font-black">取消</button>
-                                    <button onClick={async () => { await window.firebaseModules.deleteDoc(window.firebaseModules.doc(db, 'artifacts', tripId, 'public', 'data', 'photos', photoToDelete)); setPhotoToDelete(null); }} className="flex-1 brutal-btn bg-kuma-red text-white py-3 font-black text-center">刪除</button>
+                                    <button onClick={() => setPhotoToDelete(null)} className="flex-1 brutal-btn bg-gray-200 py-3 font-black shadow-hard text-center">取消</button>
+                                    <button onClick={async () => { await window.firebaseModules.deleteDoc(window.firebaseModules.doc(db, 'artifacts', tripId, 'public', 'data', 'photos', photoToDelete)); setPhotoToDelete(null); }} className="flex-1 brutal-btn bg-kuma-red text-white py-3 font-black text-center shadow-hard text-center">刪除</button>
                                 </div>
                             </div>
                         </div>
