@@ -5,17 +5,18 @@
     <!-- 解鎖 iOS 原生雙指縮放與拖移功能，完美支援旋轉適應 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     
-    <!-- 支援 iOS 全螢幕 PWA 模式 -->
+    <!-- 支援 iOS 全螢幕 PWA 模式 (關鍵修正) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Kuma Trip">
     
     <title>JAPAN | 熊本福岡初之旅</title>
     
-    <!-- PWA Web App Manifest 與 專屬平扁化熊本熊 Icon -->
-    <link rel="manifest" href='data:application/manifest+json;utf-8,{"name":"Kuma Trip","short_name":"KumaTrip","start_url":"/","display":"standalone","background_color":"#F5F5F0","theme_color":"#E60012","icons":[{"src":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI0ZGRkZGRiIvPjxjaXJjbGUgY3g9IjEyMCIgY3k9IjE4MCIgcj0iNjAiIGZpbGw9IiMxMTExMTEiLz48Y2lyY2xlIGN4PSIxMjAiIGN5PSIxODAiIHI9IjMwIiBmaWxsPSIjRkZGRkZGIi8+PGNpcmNsZSBjeD0iMzkyIiBjeT0iMTgwIiByPSI2MCIgZmlsbD0iIzExMTExMSIvPjxjaXJjbGUgY3g9IjM5MiIgY3k9IjE4MCIgcj0iMzAiIGZpbGw9IiNGRkZGRkYiLz48Y2lyY2xlIGN4PSIyNTYiIGN5PSIzMTAiIHI9IjE4MCIgZmlsbD0iIzExMTExMSIvPjxwYXRoIGQ9Ik0gMTYwIDE5MCBRIDE4MCAxNzAgMjEwIDE4MCIgc3Ryb2tlPSIjRkZGRkZGIiBzdHJva2Utd2lkdGg9IjE2IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNIDM1MiAxOTAgUSAzMzIgMTcwIDMwMiAxODAiIHN0cm9rZT0iI0ZGRkZGRiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGNpcmNsZSBjeD0iMTgwIiBjeT0iMjQwIiByPSIzNSIgZmlsbD0iI0ZGRkZGRiIvPjxjaXJjbGUgY3g9IjE4MCIgY3k9IjI0MCIgcj0iMTIiIGZpbGw9IiMxMTExMTEiLz48Y2lyY2xlIGN4PSIzMzIiIGN5PSIyNDAiIHI9IjM1IiBmaWxsPSIjRkZGRkZGIi8+PGNpcmNsZSBjeD0iMzMyIiBjeT0iMjQwIiByPSIxMiIgZmlsbD0iIzExMTExMSIvPjxjaXJjbGUgY3g9IjEwMCIgY3k9IjMyMCIgcj0iNDUiIGZpbGw9IiNFNjAwMTIiLz48Y2lyY2xlIGN4PSI0MTIiIGN5PSIzMjAiIHI9IjQ1IiBmaWxsPSIjRTYwMDEyIi8+PGVsbGlwc2UgY3g9IjI1NiIgY3k9IjM0MCIgcng9IjYwIiByeT0iNDUiIGZpbGw9IiNGRkZGRkYiLz48ZWxsaXBzZSBjeD0iMjU2IiBjeT0iMzE1IiByeD0iMTUiIHJ5PSIxMCIgZmlsbD0iIzExMTExMSIvPjxwYXRoIGQ9Ik0gMjI2IDM1MCBRIDI1NiAzNzAgMjg2IDM1MCIgc3Ryb2tlPSIjMTExMTExIiBzdHJva2Utd2lkdGg9IjgiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==","sizes":"512x512","type":"image/svg+xml"}]}'>
+    <!-- PWA Web App Manifest 與 指定 PNG Icon 修正 -->
+    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiS3VtYSBUcmlwIiwic2hvcnRfbmFtZSI6Ikt1bWFUcmlwIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNGNUY1RjAiLCJ0aGVtZV9jb2xvciI6IiNFNjAwMTIiLCJpY29ucyI6W3sic3JjIjoiaHR0cHM6Ly9kdWsudHcvYXBpL3Byb3h5LWltYWdlP3VybD1odHRwcyUzQSUyRiUyRnN0b3JhZ2UubWV0ZW9yLnRvZGF5JTJGaW1hZ2UlMkY2OWEzNjcxNmZmZWY1ZGQ0ZjA1ZGViZGEucG5nIiwic2l6ZXMiOiI1MTJ4NTEyIiwidHlwZSI6ImltYWdlL3BuZyJ9XX0=">
     <meta name="theme-color" content="#E60012">
-    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI0ZGRkZGRiIvPjxjaXJjbGUgY3g9IjEyMCIgY3k9IjE4MCIgcj0iNjAiIGZpbGw9IiMxMTExMTEiLz48Y2lyY2xlIGN4PSIxMjAiIGN5PSIxODAiIHI9IjMwIiBmaWxsPSIjRkZGRkZGIi8+PGNpcmNsZSBjeD0iMzkyIiBjeT0iMTgwIiByPSI2MCIgZmlsbD0iIzExMTExMSIvPjxjaXJjbGUgY3g9IjM5MiIgY3k9IjE4MCIgcj0iMzAiIGZpbGw9IiNGRkZGRkYiLz48Y2lyY2xlIGN4PSIyNTYiIGN5PSIzMTAiIHI9IjE4MCIgZmlsbD0iIzExMTExMSIvPjxwYXRoIGQ9Ik0gMTYwIDE5MCBRIDE4MCAxNzAgMjEwIDE4MCIgc3Ryb2tlPSIjRkZGRkZGIiBzdHJva2Utd2lkdGg9IjE2IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNIDM1MiAxOTAgUSAzMzIgMTcwIDMwMiAxODAiIHN0cm9rZT0iI0ZGRkZGRiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGNpcmNsZSBjeD0iMTgwIiBjeT0iMjQwIiByPSIzNSIgZmlsbD0iI0ZGRkZGRiIvPjxjaXJjbGUgY3g9IjE4MCIgY3k9IjI0MCIgcj0iMTIiIGZpbGw9IiMxMTExMTEiLz48Y2lyY2xlIGN4PSIzMzIiIGN5PSIyNDAiIHI9IjM1IiBmaWxsPSIjRkZGRkZGIi8+PGNpcmNsZSBjeD0iMzMyIiBjeT0iMjQwIiByPSIxMiIgZmlsbD0iIzExMTExMSIvPjxjaXJjbGUgY3g9IjEwMCIgY3k9IjMyMCIgcj0iNDUiIGZpbGw9IiNFNjAwMTIiLz48Y2lyY2xlIGN4PSI0MTIiIGN5PSIzMjAiIHI9IjQ1IiBmaWxsPSIjRTYwMDEyIi8+PGVsbGlwc2UgY3g9IjI1NiIgY3k9IjM0MCIgcng9IjYwIiByeT0iNDUiIGZpbGw9IiNGRkZGRkYiLz48ZWxsaXBzZSBjeD0iMjU2IiBjeT0iMzE1IiByeD0iMTUiIHJ5PSIxMCIgZmlsbD0iIzExMTExMSIvPjxwYXRoIGQ9Ik0gMjI2IDM1MCBRIDI1NiAzNzAgMjg2IDM1MCIgc3Ryb2tlPSIjMTExMTExIiBzdHJva2Utd2lkdGg9IjgiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==">
+    <link rel="apple-touch-icon" href="https://duk.tw/api/proxy-image?url=https%3A%2F%2Fstorage.meteor.today%2Fimage%2F69a36716ffef5dd4f05debda.png">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -279,6 +280,11 @@
             const [activeMapId, setActiveMapId] = useState('prep');
             const [zoomMap, setZoomMap] = useState(false);
 
+            // 照片牆滑動與 UI 狀態
+            const [touchStart, setTouchStart] = useState(null);
+            const [touchEnd, setTouchEnd] = useState(null);
+            const [showPhotoUI, setShowPhotoUI] = useState(true);
+
             const [user, setUser] = useState(null);
             const [db, setDb] = useState(null);
             
@@ -344,6 +350,11 @@
 
                 return () => { unsub(); unsubPhotos(); unsubMaps(); unsubDetails(); };
             }, [user, db]);
+
+            // 當開啟新照片時，自動顯示 UI
+            useEffect(() => {
+                if(fullScreenPhoto) setShowPhotoUI(true);
+            }, [fullScreenPhoto]);
 
             // 動態照片牆輪播邏輯
             useEffect(() => {
@@ -577,10 +588,36 @@
                 }
             };
 
+            // 滑動偵測邏輯
+            const minSwipeDistance = 50;
+            const onTouchStart = (e) => {
+                setTouchEnd(null);
+                setTouchStart(e.targetTouches[0].clientX);
+            };
+            const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
+            const onTouchEndEvent = () => {
+                if (!touchStart || !touchEnd) return;
+                const distance = touchStart - touchEnd;
+                const isLeftSwipe = distance > minSwipeDistance;
+                const isRightSwipe = distance < -minSwipeDistance;
+                
+                if (fullScreenPhoto && photos.length > 0) {
+                    const currentIndex = photos.findIndex(p => p.id === fullScreenPhoto.id);
+                    if (currentIndex !== -1) {
+                        if (isLeftSwipe && currentIndex < photos.length - 1) {
+                            setFullScreenPhoto(photos[currentIndex + 1]);
+                        }
+                        if (isRightSwipe && currentIndex > 0) {
+                            setFullScreenPhoto(photos[currentIndex - 1]);
+                        }
+                    }
+                }
+            };
+
             // --- Views ---
 
             const renderHomeView = () => (
-                <div className="p-4 pt-16 grid grid-cols-2 gap-4 h-[calc(100vh-100px)] overflow-y-auto hide-scrollbar pb-32">
+                <div className="p-4 pt-16 grid grid-cols-2 gap-4 flex-1 h-full overflow-y-auto hide-scrollbar pb-32">
                     <div className="col-span-2 mb-2 mt-4 relative">
                         <div className="brutal-card bg-gradient-to-r from-kuma-black to-gray-600 text-white p-4 relative border-4 border-black shadow-hard-lg">
                             <svg viewBox="0 0 100 100" className="absolute -right-2 top-0 w-40 h-40 z-20 pointer-events-none drop-shadow-[0_4px_4px_rgba(0,0,0,0.6)]">
@@ -667,7 +704,7 @@
                     <div className="col-span-2 mt-12 mb-6 flex flex-col items-center justify-center opacity-80 hover:opacity-100 transition-opacity duration-300">
                         <div className="h-px w-12 bg-gray-300 mb-4"></div>
                         <p className="text-[10px] font-black tracking-widest text-gray-500 uppercase">CREATED BY UMC IT JIMMY & JEREMY 2026</p>
-                        <p className="text-[9px] font-bold tracking-widest text-gray-400 uppercase mt-1">VERSION v1.0.0</p>
+                        <p className="text-[9px] font-bold tracking-widest text-gray-400 uppercase mt-1">VERSION v1.0.2</p>
                     </div>
                 </div>
             );
@@ -1179,38 +1216,60 @@
                     {renderEditExpenseModal()}
                     {renderItemDetailModal()}
 
-                    {/* ✅ 全螢幕照片檢視器 - 支援原生拖曳與縮放 */}
-                    {fullScreenPhoto && (
-                        <div className="fixed inset-0 bg-black z-[200] flex flex-col items-center justify-center p-0 overflow-hidden" onClick={() => setFullScreenPhoto(null)}>
-                            <div className="absolute top-6 right-4 text-white p-2 cursor-pointer z-[210] bg-black/50 rounded-full" onClick={() => setFullScreenPhoto(null)}><Icon name="X" size={28} /></div>
-                            
-                            {/* 允許圖片容器進行原生縮放，需要 overflow-auto 配合 */}
-                            <div className="w-full h-full flex items-center justify-center overflow-auto">
-                                <img src={fullScreenPhoto.url} className="max-w-none w-full object-contain pointer-events-auto transition-transform" onClick={(e) => e.stopPropagation()} />
-                            </div>
+                    {/* ✅ 全螢幕照片檢視器 - 支援原生拖曳、縮放與左右滑動切換 */}
+                    {fullScreenPhoto && (() => {
+                        const isGalleryPhoto = fullScreenPhoto.id && photos.some(p => p.id === fullScreenPhoto.id);
+                        const currentIndex = isGalleryPhoto ? photos.findIndex(p => p.id === fullScreenPhoto.id) : -1;
+                        const handlePrev = (e) => { e.stopPropagation(); if(currentIndex > 0) setFullScreenPhoto(photos[currentIndex - 1]); };
+                        const handleNext = (e) => { e.stopPropagation(); if(currentIndex < photos.length - 1) setFullScreenPhoto(photos[currentIndex + 1]); };
 
-                            <div className="absolute bottom-6 left-0 right-0 px-4 pointer-events-none z-[210]">
-                                <div className="bg-black/70 backdrop-blur-md rounded-xl p-4 text-center text-white border border-white/20 shadow-xl pointer-events-auto mx-auto max-w-sm">
-                                    <p className="font-black text-lg mb-1">{fullScreenPhoto.device || '未知設備'}</p>
+                        return (
+                            <div className="fixed inset-0 bg-black z-[200] flex flex-col items-center justify-center p-0 overflow-hidden" 
+                                 onClick={() => setShowPhotoUI(!showPhotoUI)}
+                                 onTouchStart={onTouchStart}
+                                 onTouchMove={onTouchMove}
+                                 onTouchEnd={onTouchEndEvent}>
+                                 
+                                <div className="w-full h-full flex items-center justify-center overflow-auto">
+                                    <img src={fullScreenPhoto.url} className="max-w-none w-full object-contain pointer-events-auto transition-transform" onClick={(e) => e.stopPropagation()} />
+                                </div>
+
+                                <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${showPhotoUI ? 'opacity-100' : 'opacity-0'}`}>
+                                    <div className="absolute top-6 right-4 text-white p-2 cursor-pointer z-[210] bg-black/50 rounded-full pointer-events-auto" onClick={(e) => { e.stopPropagation(); setFullScreenPhoto(null); }}><Icon name="X" size={28} /></div>
                                     
-                                    {/* Map overlay skip extra info to keep it clean */}
-                                    {!fullScreenPhoto.isMap && (
-                                        <>
-                                            {fullScreenPhoto.cameraInfo && <p className="text-xs text-gray-300 mb-1">{fullScreenPhoto.cameraInfo}</p>}
-                                            {fullScreenPhoto.captureTime && <p className="font-bold opacity-80 text-xs mb-3">{new Date(fullScreenPhoto.captureTime).toLocaleString()}</p>}
-                                            
-                                            {/* 結合經緯度提供 Google Maps 導航 */}
-                                            {fullScreenPhoto.lat && fullScreenPhoto.lon && (
-                                                <a href={`https://www.google.com/maps/search/?api=1&query=${fullScreenPhoto.lat},${fullScreenPhoto.lon}`} target="_blank" rel="noreferrer" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full text-xs font-black inline-flex items-center transition-colors shadow-md mt-2">
-                                                    <Icon name="Map" size={14} className="mr-1.5" /> 在地圖上查看位置
-                                                </a>
-                                            )}
-                                        </>
+                                    {isGalleryPhoto && currentIndex > 0 && (
+                                        <div className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 text-white p-2 sm:p-3 cursor-pointer pointer-events-auto bg-black/50 rounded-full hover:bg-black/70" onClick={handlePrev}>
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                                        </div>
                                     )}
+                                    {isGalleryPhoto && currentIndex < photos.length - 1 && (
+                                        <div className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 text-white p-2 sm:p-3 cursor-pointer pointer-events-auto bg-black/50 rounded-full hover:bg-black/70" onClick={handleNext}>
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                        </div>
+                                    )}
+
+                                    <div className="absolute bottom-6 left-0 right-0 px-4 pointer-events-none z-[210]">
+                                        <div className="bg-black/70 backdrop-blur-md rounded-xl p-4 text-center text-white border border-white/20 shadow-xl pointer-events-auto mx-auto max-w-sm">
+                                            <p className="font-black text-lg mb-1">{fullScreenPhoto.device || '未知設備'}</p>
+                                            
+                                            {!fullScreenPhoto.isMap && (
+                                                <>
+                                                    {fullScreenPhoto.cameraInfo && <p className="text-xs text-gray-300 mb-1">{fullScreenPhoto.cameraInfo}</p>}
+                                                    {fullScreenPhoto.captureTime && <p className="font-bold opacity-80 text-xs mb-3">{new Date(fullScreenPhoto.captureTime).toLocaleString()}</p>}
+                                                    
+                                                    {fullScreenPhoto.lat && fullScreenPhoto.lon && (
+                                                        <a href={`https://www.google.com/maps/search/?api=1&query=${fullScreenPhoto.lat},${fullScreenPhoto.lon}`} target="_blank" rel="noreferrer" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full text-xs font-black inline-flex items-center transition-colors shadow-md mt-2">
+                                                            <Icon name="Map" size={14} className="mr-1.5" /> 在地圖上查看位置
+                                                        </a>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        );
+                    })()}
 
                     {/* 開發者模式彩蛋 */}
                     {showDevModal && (
