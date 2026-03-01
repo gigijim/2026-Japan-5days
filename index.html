@@ -80,17 +80,27 @@
             transform: translate(2px, 2px);
             box-shadow: 2px 2px 0px #111;
         }
+        
+        /* ✅ 優化虛擬鍵盤按鈕效能與手感 */
         .brutal-btn {
             border: 3px solid #111;
             box-shadow: 4px 4px 0px #111;
             font-weight: 900;
             border-radius: 8px;
-            transition: all 0.1s;
+            /* 縮短回彈時間，並只針對必要屬性做動畫，減輕瀏覽器負擔 */
+            transition: transform 0.05s ease-out, box-shadow 0.05s ease-out; 
             cursor: pointer;
+            /* 關鍵：強制消除 iOS 的 300ms 雙擊等待延遲，實現光速觸發 */
+            touch-action: manipulation; 
+            /* 防呆：防止快速連按時觸發 iOS 放大鏡或選取文字 */
+            user-select: none; 
+            -webkit-user-select: none;
         }
         .brutal-btn:active {
             transform: translate(4px, 4px);
             box-shadow: 0px 0px 0px #111;
+            /* 關鍵：按下瞬間取消所有動畫，實現機械鍵盤般的「零延遲」下壓感 */
+            transition: none !important; 
         }
         
         .bg-neo-grid {
@@ -170,7 +180,8 @@
                 Gift: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>,
                 Camera: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>,
                 Plus: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
-                Home: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                Home: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>,
+                Share: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
             };
             return icons[name] || null;
         };
@@ -269,6 +280,7 @@
 
             // UI States
             const [showGlobalCalc, setShowGlobalCalc] = useState(false);
+            const [globalCalcAnimating, setGlobalCalcAnimating] = useState(false);
             const [showAddModal, setShowAddModal] = useState(false);
             const [activeChecklistTab, setActiveChecklistTab] = useState('luggage'); 
             const [calcTab, setCalcTab] = useState('calc'); 
@@ -790,11 +802,21 @@
                         )}
                     </div>
 
-                    {/* ✅ 質感 Footer 設計 (低調升級版) */}
+                    {/* ✅ 質感 Footer 設計 (低調升級版) 與 iOS 加入桌面提示 */}
                     <div className="col-span-2 mt-12 mb-6 flex flex-col items-center justify-center opacity-80 hover:opacity-100 transition-opacity duration-300">
                         <div className="h-px w-12 bg-gray-300 mb-4"></div>
                         <p className="text-[10px] font-black tracking-widest text-gray-500 uppercase">CREATED BY UMC IT JIMMY & JEREMY 2026</p>
-                        <p className="text-[9px] font-bold tracking-widest text-gray-400 uppercase mt-1">VERSION v1.0.0</p>
+                        <p className="text-[9px] font-bold tracking-widest text-gray-400 uppercase mt-1">VERSION v1.7.0</p>
+                        
+                        <div className="mt-6 flex flex-col items-center bg-white px-5 py-3 rounded-xl border-2 border-dashed border-gray-300 shadow-sm w-[90%] max-w-xs">
+                            <span className="text-kuma-black font-black text-xs mb-1.5 flex items-center">
+                                💡 iOS 提示
+                            </span>
+                            <span className="text-gray-600 font-bold text-[10px] text-center leading-relaxed">
+                                點擊底部 <Icon name="Share" size={14} className="inline mx-0.5 -mt-0.5 text-blue-500" /> 「分享」<br/>
+                                選擇 <Icon name="Plus" size={14} className="inline mx-0.5 -mt-0.5 text-gray-800" /> 「加入主畫面」當 APP 使用。
+                            </span>
+                        </div>
                     </div>
                 </div>
             );
@@ -1289,8 +1311,14 @@
                         </div>
                     )}
 
+                    {/* ✅ 全域計算機浮動按鈕 - 加入動畫控制 */}
                     {view !== 'calc' && view !== 'photos' && view !== 'map' && (
-                        <button onClick={() => { setGlobalCalcJpy(''); setShowGlobalCalc(true); }} className="fixed right-4 md:right-8 z-[90] brutal-btn bg-yellow-400 p-4 rounded-full shadow-hard-red flex items-center justify-center active:translate-y-1 transition-all safe-bottom-calc"><Icon name="Calculator" size={28} /></button>
+                        <button onClick={() => { 
+                            setGlobalCalcJpy(''); 
+                            setShowGlobalCalc(true); 
+                            setGlobalCalcAnimating(true);
+                            setTimeout(() => setGlobalCalcAnimating(false), 400); // 400ms 後移除動畫防止輸入時抖動
+                        }} className="fixed right-4 md:right-8 z-[90] brutal-btn bg-yellow-400 p-4 rounded-full shadow-hard-red flex items-center justify-center active:translate-y-1 transition-all safe-bottom-calc"><Icon name="Calculator" size={28} /></button>
                     )}
 
                     {/* Modals & Overlays */}
@@ -1381,10 +1409,11 @@
                         </div>
                     )}
 
-                    {/* ✅ 全域快速計算機 - 虛擬鍵盤化設計與點擊外部關閉 */}
+                    {/* ✅ 全域快速計算機 - 移除輸入時的抖動，保留彈出時的動畫 */}
                     {showGlobalCalc && (
                         <div className="fixed inset-0 bg-black/60 z-[100] flex flex-col justify-end sm:justify-center items-center p-0 sm:p-4 backdrop-blur-sm" onClick={() => setShowGlobalCalc(false)}>
-                            <div className="brutal-card bg-kuma-red w-full max-w-md p-1 shadow-hard-lg rounded-b-none sm:rounded-xl animate-pop" onClick={(e) => e.stopPropagation()}>
+                            {/* 透過 globalCalcAnimating 狀態精準控制動畫，確保輸入數字時不會再抖動 */}
+                            <div className={`brutal-card bg-kuma-red w-full max-w-md p-1 shadow-hard-lg rounded-b-none sm:rounded-xl ${globalCalcAnimating ? 'animate-pop' : ''}`} onClick={(e) => e.stopPropagation()}>
                                 <div className="bg-white rounded-lg p-5">
                                     <div className="flex justify-between items-center mb-4">
                                         <h3 className="font-black text-xl text-kuma-black">快速匯率換算</h3>
