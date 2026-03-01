@@ -9,12 +9,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Kuma Trip">
+    <meta name="apple-mobile-web-app-title" content="熊本之旅">
     
     <title>JAPAN | 熊本福岡初之旅</title>
     
     <!-- PWA Web App Manifest: 改為載入同目錄下的 icon.png -->
-    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiS3VtYSBUcmlwIiwic2hvcnRfbmFtZSI6Ikt1bWFUcmlwIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNGNUY1RjAiLCJ0aGVtZV9jb2xvciI6IiNFNjAwMTIiLCJpY29ucyI6W3sic3JjIjoiaWNvbi5wbmciLCJzaXplcyI6IjUxMng1MTIiLCJ0eXBlIjoiaW1hZ2UvcG5nIn1dfQ==">
+    <link rel="manifest" href='data:application/manifest+json;utf-8,{"name":"Kuma Trip","short_name":"熊本之旅","start_url":".","display":"standalone","background_color":"#F5F5F0","theme_color":"#E60012","icons":[{"src":"icon.png","sizes":"512x512","type":"image/png"}]}'>
     <meta name="theme-color" content="#111111">
     
     <!-- 蘋果專屬桌面圖示: 請務必在 GitHub 放上一張名為 icon.png 的圖片 -->
@@ -79,6 +79,14 @@
         .brutal-card:active {
             transform: translate(2px, 2px);
             box-shadow: 2px 2px 0px #111;
+        }
+
+        /* ✅ 靜態卡片，防止點擊內部按鈕時觸發外框連動縮放 */
+        .modal-card {
+            border: 3px solid #111;
+            box-shadow: 4px 4px 0px #111;
+            background-color: white;
+            border-radius: 12px;
         }
         
         /* ✅ 優化虛擬鍵盤按鈕效能與手感 */
@@ -280,7 +288,6 @@
 
             // UI States
             const [showGlobalCalc, setShowGlobalCalc] = useState(false);
-            const [globalCalcAnimating, setGlobalCalcAnimating] = useState(false);
             const [showAddModal, setShowAddModal] = useState(false);
             const [activeChecklistTab, setActiveChecklistTab] = useState('luggage'); 
             const [calcTab, setCalcTab] = useState('calc'); 
@@ -541,11 +548,39 @@
                             latForMap = convertDMSToDD(gpsLat, exifData.GPSLatitudeRef);
                             lonForMap = convertDMSToDD(gpsLon, exifData.GPSLongitudeRef);
                             locationStr = `${latForMap.toFixed(4)}, ${lonForMap.toFixed(4)}`;
+                            
+                            // ✅ 呼叫反向地理編碼 API，優化台灣/日本地址解析邏輯 (精確顯示區)
+                            try {
+                                const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latForMap}&lon=${lonForMap}&zoom=18&addressdetails=1&accept-language=zh-TW,ja,en`);
+                                const geoData = await geoRes.json();
+                                if (geoData && geoData.address) {
+                                    const ad = geoData.address;
+                                    
+                                    // 組合行政層級：縣市/都道府縣 -> 鄉鎮市區 -> 村里/街區 (排除過細的道路或地標)
+                                    const region1 = ad.province || ad.state || ad.county || ad.city || ''; 
+                                    const region2 = (ad.city && ad.city !== region1) ? ad.city : (ad.town || ad.city_district || ad.municipality || ''); 
+                                    const region3 = ad.village || ad.suburb || ad.ward || ad.neighbourhood || ad.quarter || ''; 
+                                    
+                                    const parts = [region1, region2, region3].filter(Boolean);
+                                    
+                                    // 過濾掉重複的名稱並用空格連接
+                                    const detailedName = [...new Set(parts)].join(' ');
+                                    if (detailedName) {
+                                        locationStr = detailedName;
+                                    }
+                                }
+                            } catch (geoErr) {
+                                console.log('Geocoding error:', geoErr);
+                            }
                         } catch(e){}
                     }
 
+                    // ✅ 清除 EXIF 字串中的不可見字元 (如 Null Bytes \x00) 防止出現菱形亂碼
+                    const cleanStr = (str) => str ? String(str).replace(/[\x00-\x1F\x7F-\x9F]/g, '').trim() : '';
+                    let cleanModel = cleanStr(exifData.Model);
+
                     let cameraInfo = [];
-                    if (exifData.Model) cameraInfo.push(exifData.Model);
+                    if (cleanModel) cameraInfo.push(cleanModel);
                     if (exifData.FNumber) cameraInfo.push(`f/${exifData.FNumber}`);
                     if (exifData.ExposureTime) cameraInfo.push(`1/${Math.round(1/exifData.ExposureTime)}s`);
                     if (exifData.ISOSpeedRatings) cameraInfo.push(`ISO${exifData.ISOSpeedRatings}`);
@@ -574,11 +609,10 @@
                             await window.firebaseModules.addDoc(window.firebaseModules.collection(db, 'artifacts', tripId, 'public', 'data', 'photos'), {
                                 url: dataUrl, 
                                 captureTime: cTS, 
-                                device: exifData.Model || '未知設備', 
-                                maker: exifData.Make || '',
-                                cameraInfo: cameraInfo.join(' • '),
-                                location: locationStr,
-                                lat: latForMap,
+                                device: cleanModel || '未知設備', 
+                                cameraInfo: cameraInfo.join(' • '), 
+                                location: locationStr, 
+                                lat: latForMap, 
                                 lon: lonForMap
                             });
                             setIsUploading(false);
@@ -796,8 +830,9 @@
                             </div>
                         )}
                         {photos.length > 0 && photos[wallPhotoIdx]?.location && (
-                             <div className="absolute top-2 left-2 z-10 bg-black/60 text-white px-2 py-1 rounded text-[10px] font-bold flex items-center backdrop-blur-sm shadow-sm pointer-events-none">
-                                <Icon name="Map" size={10} className="mr-1" /> {photos[wallPhotoIdx].location}
+                             <div className="absolute top-2 left-2 z-10 bg-black/60 text-white px-2 py-1 rounded text-[10px] font-bold flex items-center backdrop-blur-sm shadow-sm pointer-events-none max-w-[80%]">
+                                <Icon name="Map" size={10} className="mr-1 shrink-0" /> 
+                                <span className="truncate">{photos[wallPhotoIdx].location.includes('.') ? '照片位置' : photos[wallPhotoIdx].location}</span>
                              </div>
                         )}
                     </div>
@@ -806,7 +841,7 @@
                     <div className="col-span-2 mt-12 mb-6 flex flex-col items-center justify-center opacity-80 hover:opacity-100 transition-opacity duration-300">
                         <div className="h-px w-12 bg-gray-300 mb-4"></div>
                         <p className="text-[10px] font-black tracking-widest text-gray-500 uppercase">CREATED BY UMC IT JIMMY & JEREMY 2026</p>
-                        <p className="text-[9px] font-bold tracking-widest text-gray-400 uppercase mt-1">VERSION v1.7.0</p>
+                        <p className="text-[9px] font-bold tracking-widest text-gray-400 uppercase mt-1">VERSION v1.8.0</p>
                         
                         <div className="mt-6 flex flex-col items-center bg-white px-5 py-3 rounded-xl border-2 border-dashed border-gray-300 shadow-sm w-[90%] max-w-xs">
                             <span className="text-kuma-black font-black text-xs mb-1.5 flex items-center">
@@ -1057,8 +1092,9 @@
                                         {p.cameraInfo && <p className="text-[9px] font-bold text-gray-500 truncate mt-0.5">{p.cameraInfo}</p>}
                                     </div>
                                     {p.location && (
-                                        <a href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="absolute bottom-2 left-2 bg-white/90 text-blue-600 px-1.5 py-0.5 rounded text-[9px] font-black border border-blue-200">
-                                            <Icon name="Map" size={10} className="mr-1 shrink-0"/>地圖
+                                        <a href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="absolute bottom-2 left-2 bg-white/90 text-blue-600 px-1.5 py-0.5 rounded text-[9px] font-black border border-blue-200 flex items-center max-w-[80%]">
+                                            <Icon name="Map" size={10} className="mr-1 shrink-0"/>
+                                            <span className="truncate">{p.location.includes('.') ? '地圖' : p.location}</span>
                                         </a>
                                     )}
                                     <button onClick={(e) => { e.stopPropagation(); setPhotoToDelete(p.id); }} className="absolute top-2 right-2 bg-kuma-red text-white p-1.5 rounded border-2 border-black active:translate-y-0.5 transition-all"><Icon name="Trash" size={14} /></button>
@@ -1128,7 +1164,7 @@
                 };
                 return (
                     <div className="fixed inset-0 bg-black/60 z-[120] flex items-center justify-center p-4 backdrop-blur-sm">
-                        <div className="brutal-card bg-white w-full max-w-sm p-5 border-4 border-black shadow-hard-lg">
+                        <div className="modal-card bg-white w-full max-w-sm p-5 border-4 border-black shadow-hard-lg">
                             <div className="flex justify-between items-center mb-4"><h3 className="font-black text-xl">新增至{view === 'itinerary' ? activeDate.split('-').slice(1).join('/') : '項目'}</h3><button onClick={() => setShowAddModal(false)}><Icon name="X" /></button></div>
                             
                             {view === 'checklist' && activeChecklistTab === 'personal' && (
@@ -1172,7 +1208,7 @@
                 };
                 return (
                     <div className="fixed inset-0 bg-black/60 z-[150] flex items-center justify-center p-4 backdrop-blur-sm text-kuma-black">
-                        <div className="brutal-card bg-white w-full max-w-sm p-5 border-4 border-black shadow-hard-lg max-h-[90vh] overflow-y-auto">
+                        <div className="modal-card bg-white w-full max-w-sm p-5 border-4 border-black shadow-hard-lg max-h-[90vh] overflow-y-auto">
                             <div className="flex justify-between items-center mb-4"><h3 className="font-black text-xl">編輯花費</h3><button onClick={() => setShowEditExpenseModal(false)}><Icon name="X" /></button></div>
                             <div className="mb-3 text-left"><label className="block font-bold text-xs mb-1">發生時間</label><input type="datetime-local" className="w-full border-4 border-black p-2 rounded font-bold" value={editExpenseTime} onChange={e => setEditExpenseTime(e.target.value)} /></div>
                             <div className="mb-3 text-left"><label className="block font-bold text-xs mb-1">項目名稱</label><input type="text" className="w-full border-4 border-black p-2 rounded font-bold" value={editExpenseName} onChange={e => setEditExpenseName(e.target.value)} /></div>
@@ -1223,7 +1259,7 @@
 
                 return (
                     <div className="fixed inset-0 bg-black/60 z-[150] flex flex-col items-center justify-end sm:justify-center p-0 sm:p-4 backdrop-blur-sm text-kuma-black">
-                        <div className="brutal-card bg-white w-full max-w-md md:max-w-2xl p-5 border-4 sm:border-4 border-b-0 sm:border-b-4 border-black sm:rounded-xl rounded-b-none shadow-hard-lg max-h-[90vh] overflow-y-auto flex flex-col">
+                        <div className="modal-card bg-white w-full max-w-md md:max-w-2xl p-5 border-4 sm:border-4 border-b-0 sm:border-b-4 border-black sm:rounded-xl rounded-b-none shadow-hard-lg max-h-[90vh] overflow-y-auto flex flex-col">
                             <div className="flex justify-between items-start mb-4 border-b-4 border-black pb-3">
                                 <div className="flex-1 pr-4 w-full">
                                     <span className="text-[10px] font-black bg-yellow-300 px-2 py-0.5 border border-black rounded mb-1 inline-block text-left">{detailModalItem.isChecklist ? '清單項目' : '行程規劃'}</span>
@@ -1311,13 +1347,11 @@
                         </div>
                     )}
 
-                    {/* ✅ 全域計算機浮動按鈕 - 加入動畫控制 */}
+                    {/* ✅ 全域計算機浮動按鈕 - 移除多餘動畫設定 */}
                     {view !== 'calc' && view !== 'photos' && view !== 'map' && (
                         <button onClick={() => { 
                             setGlobalCalcJpy(''); 
                             setShowGlobalCalc(true); 
-                            setGlobalCalcAnimating(true);
-                            setTimeout(() => setGlobalCalcAnimating(false), 400); // 400ms 後移除動畫防止輸入時抖動
                         }} className="fixed right-4 md:right-8 z-[90] brutal-btn bg-yellow-400 p-4 rounded-full shadow-hard-red flex items-center justify-center active:translate-y-1 transition-all safe-bottom-calc"><Icon name="Calculator" size={28} /></button>
                     )}
 
@@ -1363,6 +1397,12 @@
 
                                     <div className="absolute left-0 right-0 px-4 pointer-events-none z-[210] safe-bottom-float">
                                         <div className="bg-black/70 backdrop-blur-md rounded-xl p-4 text-center text-white border border-white/20 shadow-xl pointer-events-auto mx-auto max-w-sm">
+                                            {/* ✅ 顯示地名 */}
+                                            {fullScreenPhoto.location && !fullScreenPhoto.location.includes('.') && (
+                                                <p className="text-sm text-yellow-300 font-black mb-1.5 tracking-wide flex items-center justify-center">
+                                                    <Icon name="Map" size={14} className="mr-1" />{fullScreenPhoto.location}
+                                                </p>
+                                            )}
                                             <p className="font-black text-lg mb-1">{fullScreenPhoto.device || '未知設備'}</p>
                                             
                                             {!fullScreenPhoto.isMap && (
@@ -1387,7 +1427,7 @@
                     {/* 開發者模式彩蛋 */}
                     {showDevModal && (
                         <div className="fixed inset-0 bg-black/60 z-[250] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowDevModal(false)}>
-                            <div className="brutal-card bg-white w-full max-w-xs p-6 border-4 border-black text-center animate-pop" onClick={e => e.stopPropagation()}>
+                            <div className="modal-card bg-white w-full max-w-xs p-6 border-4 border-black text-center animate-pop" onClick={e => e.stopPropagation()}>
                                 <h3 className="font-black text-xl mb-2 text-kuma-black text-center">您已經啟用開發者模式</h3>
                                 <p className="font-bold text-gray-600 mb-6 text-sm text-center">但開發者正在休息，請您稍後片刻。</p>
                                 <button onClick={() => setShowDevModal(false)} className="w-full brutal-btn bg-yellow-400 text-kuma-black py-3 font-black shadow-hard text-center">我知道了</button>
@@ -1398,7 +1438,7 @@
                     {/* 防呆刪除警告 */}
                     {photoToDelete && (
                         <div className="fixed inset-0 bg-black/60 z-[250] flex items-center justify-center p-4 backdrop-blur-sm">
-                            <div className="brutal-card bg-white w-full max-w-xs p-6 border-4 border-black text-center animate-pop">
+                            <div className="modal-card bg-white w-full max-w-xs p-6 border-4 border-black text-center animate-pop">
                                 <h3 className="font-black text-xl mb-2 text-kuma-red text-center">溫馨提醒</h3>
                                 <p className="font-bold text-gray-600 mb-6 text-sm text-center">刪除後將無法復原這張珍貴的旅行回憶喔！確定要刪除嗎？</p>
                                 <div className="flex space-x-3">
@@ -1409,11 +1449,10 @@
                         </div>
                     )}
 
-                    {/* ✅ 全域快速計算機 - 移除輸入時的抖動，保留彈出時的動畫 */}
+                    {/* ✅ 全域快速計算機 - 改用 modal-card 完全消除連動縮放抖動 */}
                     {showGlobalCalc && (
                         <div className="fixed inset-0 bg-black/60 z-[100] flex flex-col justify-end sm:justify-center items-center p-0 sm:p-4 backdrop-blur-sm" onClick={() => setShowGlobalCalc(false)}>
-                            {/* 透過 globalCalcAnimating 狀態精準控制動畫，確保輸入數字時不會再抖動 */}
-                            <div className={`brutal-card bg-kuma-red w-full max-w-md p-1 shadow-hard-lg rounded-b-none sm:rounded-xl ${globalCalcAnimating ? 'animate-pop' : ''}`} onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-card bg-kuma-red w-full max-w-md p-1 shadow-hard-lg rounded-b-none sm:rounded-xl" onClick={(e) => e.stopPropagation()}>
                                 <div className="bg-white rounded-lg p-5">
                                     <div className="flex justify-between items-center mb-4">
                                         <h3 className="font-black text-xl text-kuma-black">快速匯率換算</h3>
