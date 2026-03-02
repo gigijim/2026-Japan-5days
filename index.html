@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
     
-    <!-- ✅ iOS PWA 核心設定 (取代 manifest.json 的作用) -->
+    <!-- ✅ iOS PWA 核心設定 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="熊本之旅">
@@ -15,10 +15,12 @@
     
     <title>JAPAN | 熊本福岡初之旅</title>
     
-    <!-- ✅ PWA Icon 改為指向同目錄下的 icon.png -->
+    <!-- ✅ PWA Icon 指向同目錄下的 icon.png -->
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" type="image/png" href="icon.png">
-    <link rel="manifest" href='data:application/manifest+json;utf-8,{"name":"Kuma Trip","short_name":"熊本之旅","start_url":".","display":"standalone","background_color":"#F5F5F0","theme_color":"#E60012","icons":[{"src":"icon.png","sizes":"512x512","type":"image/png"}]}'>
+    
+    <!-- ✅ 改回標準的實體 manifest 檔案引用，解決解析錯誤 -->
+    <link rel="manifest" href="manifest.json">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -976,7 +978,6 @@
                                         const wCode = wData.weather_code[idx];
                                         const { text, icon } = getWeatherDesc(wCode);
                                         const advice = getClothingAdvice(minT, maxT);
-                                        const isToday = dateStr === activeDate;
                                         
                                         const dateObj = new Date(dateStr);
                                         const dayStr = ['日', '一', '二', '三', '四', '五', '六'][dateObj.getDay()];
@@ -1293,7 +1294,6 @@
                                         <span className="text-[10px] font-black bg-white px-2 py-1 rounded border-2 border-black shadow-[2px_2px_0px_#000]">2人平分</span>
                                     </div>
                                     <div className="flex justify-between items-end mb-3">
-                                        {/* ✅ 加入醒目的「日幣」兩字 */}
                                         <div className="font-black text-2xl text-kuma-red">日幣 ¥ {totalJPY.toLocaleString()}</div>
                                         <div className="font-black text-lg">NT$ {totalTWD.toLocaleString()}</div>
                                     </div>
@@ -1307,13 +1307,11 @@
                                                 <div className="font-black text-lg truncate leading-tight mb-1">{exp.name}</div>
                                                 <div className="text-[10px] font-bold text-gray-500 mb-1">{exp.date}</div>
                                                 <div className="flex items-baseline space-x-2 mb-1">
-                                                    {/* ✅ 加入醒目的「日幣」兩字 */}
                                                     <div className="font-black text-xl text-kuma-red">日幣 ¥ {exp.jpy.toLocaleString()}</div>
                                                     <div className="font-bold text-xs text-gray-400">NT$ {exp.twd.toLocaleString()}</div>
                                                 </div>
                                                 <div className="mt-1 flex items-center space-x-2 flex-wrap gap-y-1">
                                                     <span className="text-[9px] font-black bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-400">
-                                                        {/* ✅ 平均分攤也加入「日幣」兩字 */}
                                                         每人: 日幣 ¥{Math.round(exp.jpy/2).toLocaleString()} / NT$ {Math.round(exp.twd/2).toLocaleString()}
                                                     </span>
                                                 </div>
