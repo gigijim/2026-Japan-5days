@@ -2,18 +2,22 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
     
+    <!-- ✅ iOS PWA 核心設定 (取代 manifest.json 的作用) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="熊本之旅">
     
+    <!-- Android / Chrome PWA 設定 -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#111111">
+    
     <title>JAPAN | 熊本福岡初之旅</title>
     
-    <link rel="manifest" href='data:application/manifest+json;utf-8,{"name":"Kuma Trip","short_name":"熊本之旅","start_url":".","display":"standalone","background_color":"#F5F5F0","theme_color":"#E60012","icons":[{"src":"icon.png","sizes":"512x512","type":"image/png"}]}'>
-    <meta name="theme-color" content="#111111">
-    <link rel="apple-touch-icon" href="icon.png">
+    <!-- 移除了容易讓 iOS 混淆的 Data URI manifest -->
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3284/3284594.png">
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3284/3284594.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -219,7 +223,7 @@
             // 密碼管理狀態
             const [newPin, setNewPin] = useState('');
             const [showPins, setShowPins] = useState(false);
-            const [privilegePinInput, setPrivilegePinInput] = useState(''); // ✅ 新增：特權密碼輸入狀態
+            const [privilegePinInput, setPrivilegePinInput] = useState(''); 
 
             // 天氣資料狀態 (Open-Meteo API)
             const [weatherData, setWeatherData] = useState(null);
@@ -347,7 +351,7 @@
                         setAppSettings({
                             isPinEnabled: data.isPinEnabled || false,
                             pinCodes: migratedPinCodes,
-                            privilegePin: data.privilegePin || '' // ✅ 讀取特權密碼
+                            privilegePin: data.privilegePin || '' 
                         });
                     } else {
                         window.firebaseModules.setDoc(settingsRef, { isPinEnabled: false, pinCodes: ['2026'], privilegePin: '' });
@@ -357,14 +361,12 @@
                 return () => { unsub(); unsubPhotos(); unsubMaps(); unsubDetails(); unsubSettings(); };
             }, [user, db]);
 
-            // ✅ 同步特權密碼到輸入框
             useEffect(() => {
                 if (appSettings.privilegePin !== undefined) {
                     setPrivilegePinInput(appSettings.privilegePin);
                 }
             }, [appSettings.privilegePin]);
 
-            // ✅ 載入即時天氣資訊
             useEffect(() => {
                 if (view === 'weather' && !weatherData) {
                     setWeatherLoading(true);
@@ -405,17 +407,14 @@
                 return () => clearInterval(timer);
             }, [photos, isCarouselPlaying]);
 
-            // ✅ 密碼驗證邏輯 (加入特權密碼判斷)
             useEffect(() => {
                 if (enteredPin.length === 4) {
                     if (appSettings.privilegePin && enteredPin === appSettings.privilegePin) {
-                        // 特權密碼：登入並自動關閉密碼鎖
                         setIsAuthenticated(true);
                         setEnteredPin('');
                         saveSettings({ ...appSettings, isPinEnabled: false });
                         alert('🔓 已使用特權密碼登入，密碼鎖已自動永久解除！');
                     } else if (appSettings.pinCodes && appSettings.pinCodes.includes(enteredPin)) {
-                        // 普通密碼：正常登入
                         setIsAuthenticated(true);
                         setEnteredPin('');
                     } else {
@@ -658,7 +657,6 @@
                         } catch(e){}
                     }
 
-                    // ✅ 加強版過濾器：過濾 \uFFFD (菱形問號)，解決特定手機型號造成的亂碼
                     const cleanStr = (str) => str ? String(str).replace(/[\x00-\x1F\x7F-\x9F\uFFFD]/g, '').trim() : '';
                     let cleanModel = cleanStr(exifData.Model);
 
@@ -917,7 +915,6 @@
                                         ))}
                                     </div>
                                     
-                                    {/* ✅ 新增：特權密碼設定區塊 */}
                                     <div className="pt-4 border-t-2 border-dashed border-gray-200">
                                         <div className="flex justify-between items-center mb-1">
                                             <label className="block font-black text-sm text-kuma-red flex items-center">
@@ -952,7 +949,6 @@
                 </div>
             );
 
-            // ✅ 天氣預報卡片升級 (拿掉指定日期、修改分頁文字)
             const renderWeatherView = () => {
                 const wData = weatherData?.[weatherTab]; 
                 return (
@@ -962,7 +958,6 @@
                             <h2 className="font-black text-xl tracking-widest text-white text-center flex-1 pr-8">天氣預報</h2>
                         </div>
                         
-                        {/* ✅ 精簡分頁文字 */}
                         <div className="bg-white border-b-4 border-black flex w-full sticky top-[60px] z-10 shrink-0">
                             <button className={`flex-1 py-3 font-black border-r-4 border-black ${weatherTab === 'kumamoto' ? 'bg-blue-500 text-white' : 'text-gray-500 hover:text-kuma-black'}`} onClick={() => setWeatherTab('kumamoto')}>熊本</button>
                             <button className={`flex-1 py-3 font-black ${weatherTab === 'fukuoka' ? 'bg-blue-500 text-white' : 'text-gray-500 hover:text-kuma-black'}`} onClick={() => setWeatherTab('fukuoka')}>福岡</button>
@@ -980,13 +975,12 @@
                                         const wCode = wData.weather_code[idx];
                                         const { text, icon } = getWeatherDesc(wCode);
                                         const advice = getClothingAdvice(minT, maxT);
+                                        const isToday = dateStr === activeDate;
                                         
-                                        // 轉換日期附帶星期幾
                                         const dateObj = new Date(dateStr);
                                         const dayStr = ['日', '一', '二', '三', '四', '五', '六'][dateObj.getDay()];
                                         const displayDate = `${dateStr.split('-').slice(1).join('/')}(${dayStr})`;
                                         
-                                        // ✅ 移除 isToday 判斷與藍色邊框
                                         return (
                                             <div key={dateStr} className="brutal-card p-4 bg-white">
                                                 
@@ -1037,7 +1031,6 @@
                 <div className="p-4 safe-home-pt grid grid-cols-2 gap-4 flex-1 h-full overflow-y-auto hide-scrollbar pb-32">
                     <div className="col-span-2 mb-2 mt-4 relative">
                         
-                        {/* ✅ 彩蛋：點擊右上角熊掌 7 次進入設定 */}
                         <div className="absolute -top-5 -right-2 w-14 h-14 bg-white rounded-full border-4 border-black flex items-center justify-center cursor-pointer shadow-[4px_4px_0px_#111] z-30 active:scale-90 transition-transform" onClick={handlePawClick}>
                             <Icon name="Paw" size={28} className="text-kuma-black" />
                         </div>
@@ -1099,7 +1092,6 @@
                         <Icon name="Map" size={80} className="absolute -right-4 -bottom-4 opacity-20 text-green-900 pointer-events-none" />
                     </div>
 
-                    {/* ✅ 修復：天氣預報卡片圖示 (改用清爽清晰的線條圖示) */}
                     <div className="col-span-2 brutal-card bg-[#87CEEB] p-4 relative flex flex-col items-center justify-center text-center cursor-pointer min-h-[100px] border-4 border-black overflow-hidden" onClick={() => setView('weather')}>
                         <div className="flex items-center space-x-3 relative z-10">
                             <div className="bg-white text-blue-500 p-2.5 rounded-full shadow-hard border-2 border-black">
@@ -1574,7 +1566,6 @@
                 const handleSaveDetail = () => {
                     saveItemDetail(detailModalItem.id, { notes: tempDetailNotes });
                     
-                    // ✅ 修復：使用嚴格的深拷貝，避免覆寫 Firebase 狀態
                     if (!detailModalItem.isChecklist && (tempDetailTitle !== detailModalItem.title || tempDetailDesc !== detailModalItem.desc || tempDetailTime !== detailModalItem.time)) {
                         const newItin = {};
                         for(let key in itinerary) newItin[key] = [...itinerary[key]];
@@ -1625,7 +1616,6 @@
                             </div>
                             
                             <div className="flex-1 flex flex-col">
-                                {/* ✅ 調整：放寬時間輸入框，確保文字不會被遮擋 */}
                                 {!detailModalItem.isChecklist && (
                                     <div className="mb-4 flex space-x-3">
                                         <div className="w-[120px] shrink-0">
