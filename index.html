@@ -247,6 +247,9 @@
             const [calcExpenseName, setCalcExpenseName] = useState('');
             const [checklistToDelete, setChecklistToDelete] = useState(null); 
             
+            // ✅ 新增：花費刪除狀態
+            const [expenseToDelete, setExpenseToDelete] = useState(null);
+            
             // Add Modal States
             const [modalTitle, setModalTitle] = useState('');
             const [modalTime, setModalTime] = useState('09:00');
@@ -321,7 +324,10 @@
                         if (data.checklist) setChecklist({ luggage: [], souvenir: [], personal: [], ...data.checklist });
                         if (data.expenses) setExpenses(data.expenses);
                     } else {
-                        window.firebaseModules.setDoc(docRef, { itinerary: initialItinerary, checklist: initialChecklist, expenses: [], maps: {} });
+                        // ✅ 拔除毒藥機制：不在 snapshot 發現空文件時主動寫入死資料覆寫雲端。只在前端顯示預設狀態。
+                        setItinerary(initialItinerary);
+                        setChecklist(initialChecklist);
+                        setExpenses([]);
                     }
                 });
 
@@ -448,24 +454,27 @@
                 return '溫暖。短袖為主，備件薄外套防曬防風';
             };
 
-            const saveData = (newItinerary, newChecklist, newExpenses) => {
+            // ✅ 核心修復：精準存檔機制。改用 merge: true 且只傳遞有變動的資料欄位，根絕 Race Condition 資料被覆寫的 Bug。
+            const saveData = async (newItinerary, newChecklist, newExpenses) => {
                 if (newItinerary) setItinerary(newItinerary);
                 if (newChecklist) setChecklist(newChecklist);
                 if (newExpenses) setExpenses(newExpenses);
 
                 if (!user || !db) return;
-                const docRef = window.firebaseModules.doc(db, 'trips', tripId);
-                window.firebaseModules.updateDoc(docRef, {
-                    itinerary: newItinerary || itinerary,
-                    checklist: newChecklist || checklist,
-                    expenses: newExpenses || expenses
-                }).catch(() => {
-                    window.firebaseModules.setDoc(docRef, {
-                        itinerary: newItinerary || itinerary,
-                        checklist: newChecklist || checklist,
-                        expenses: newExpenses || expenses
-                    });
-                });
+                
+                const updatePayload = {};
+                if (newItinerary) updatePayload.itinerary = newItinerary;
+                if (newChecklist) updatePayload.checklist = newChecklist;
+                if (newExpenses) updatePayload.expenses = newExpenses;
+
+                if (Object.keys(updatePayload).length > 0) {
+                    const docRef = window.firebaseModules.doc(db, 'trips', tripId);
+                    try {
+                        await window.firebaseModules.setDoc(docRef, updatePayload, { merge: true });
+                    } catch (error) {
+                        console.error("資料儲存失敗:", error);
+                    }
+                }
             };
 
             const toggleChecklist = (type, id) => {
@@ -1329,7 +1338,8 @@
                                                 <Icon name="Pencil" size={16} className="mr-1"/>編輯
                                             </button>
                                             
-                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteExpense(exp.id); }} className="w-14 shrink-0 py-2 bg-kuma-red text-white rounded-lg border-2 border-black active:translate-y-0.5 transition-transform shadow-[2px_2px_0px_#111] flex justify-center items-center hover:bg-red-700">
+                                            {/* ✅ 觸發刪除花費確認視窗 */}
+                                            <button onClick={(e) => { e.stopPropagation(); setExpenseToDelete(exp.id); }} className="w-14 shrink-0 py-2 bg-kuma-red text-white rounded-lg border-2 border-black active:translate-y-0.5 transition-transform shadow-[2px_2px_0px_#111] flex justify-center items-center hover:bg-red-700">
                                                 <Icon name="Trash" size={18} />
                                             </button>
                                         </div>
@@ -1831,6 +1841,20 @@
                                 <div className="flex space-x-3">
                                     <button onClick={() => setChecklistToDelete(null)} className="flex-1 brutal-btn bg-gray-200 py-3 font-black shadow-hard text-center">取消</button>
                                     <button onClick={() => { deleteChecklist(checklistToDelete.type, checklistToDelete.id); setChecklistToDelete(null); }} className="flex-1 brutal-btn bg-kuma-red text-white py-3 font-black text-center shadow-hard text-center">刪除</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ✅ 新增：花費紀錄的刪除確認視窗 */}
+                    {expenseToDelete && (
+                        <div className="fixed inset-0 bg-black/60 z-[250] flex items-center justify-center p-4 backdrop-blur-sm">
+                            <div className="modal-card bg-white w-full max-w-xs p-6 border-4 border-black text-center animate-pop">
+                                <h3 className="font-black text-xl mb-2 text-kuma-red text-center">溫馨提醒</h3>
+                                <p className="font-bold text-gray-600 mb-6 text-sm text-center">確定要刪除這筆花費紀錄嗎？</p>
+                                <div className="flex space-x-3">
+                                    <button onClick={() => setExpenseToDelete(null)} className="flex-1 brutal-btn bg-gray-200 py-3 font-black shadow-hard text-center">取消</button>
+                                    <button onClick={() => { handleDeleteExpense(expenseToDelete); setExpenseToDelete(null); }} className="flex-1 brutal-btn bg-kuma-red text-white py-3 font-black text-center shadow-hard text-center">刪除</button>
                                 </div>
                             </div>
                         </div>
